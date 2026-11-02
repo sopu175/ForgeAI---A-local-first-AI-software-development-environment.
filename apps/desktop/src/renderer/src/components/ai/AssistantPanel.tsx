@@ -3,15 +3,19 @@ import {
   ArrowUp,
   Bot,
   Brain,
+  Bug,
   ChevronDown,
   ChevronRight,
   Code2,
   FileText,
   GitBranch,
+  Globe,
+  Layers,
   MessageSquare,
   MessageSquarePlus,
   Paperclip,
   Search,
+  Server,
   ShieldCheck,
   Sparkles,
   Square,
@@ -27,17 +31,54 @@ import { AgentRunCard } from './AgentRunCard';
 import { errorMessage, shortModelName } from '../../lib/format';
 import { getActiveEditor } from '../../lib/editorRegistry';
 
-const AGENT_OPTIONS: Array<{ kind: AgentKind; label: string }> = [
-  { kind: 'coding', label: 'Coding' },
-  { kind: 'planner', label: 'Planner' },
-  { kind: 'debugging', label: 'Debugging' },
-  { kind: 'testing', label: 'Testing' },
-  { kind: 'review', label: 'Review' },
-  { kind: 'docs', label: 'Docs' },
-  { kind: 'seo', label: 'SEO' },
+export function getAgentIcon(kind: AgentKind, size = 11) {
+  switch (kind) {
+    case 'coding':
+      return <Code2 size={size} />;
+    case 'planner':
+      return <Brain size={size} />;
+    case 'frontend':
+      return <Layers size={size} />;
+    case 'animation':
+      return <Zap size={size} />;
+    case 'backend':
+      return <Server size={size} />;
+    case 'debugging':
+      return <Bug size={size} />;
+    case 'testing':
+      return <TestTube size={size} />;
+    case 'review':
+      return <ShieldCheck size={size} />;
+    case 'docs':
+      return <FileText size={size} />;
+    case 'seo':
+      return <Globe size={size} />;
+    default:
+      return <Bot size={size} />;
+  }
+}
+
+export interface AgentOptionItem {
+  kind: AgentKind;
+  label: string;
+  badge: string;
+  desc: string;
+}
+
+const AGENT_OPTIONS: AgentOptionItem[] = [
+  { kind: 'coding', label: 'Coding', badge: 'Full-stack', desc: 'Autonomous coding, refactoring & implementation' },
+  { kind: 'planner', label: 'Planner', badge: 'Architecture', desc: 'System specs, impacted files & ordered plans' },
+  { kind: 'frontend', label: 'Frontend', badge: 'UI & React', desc: 'React, Next.js, responsive layouts & Tailwind CSS' },
+  { kind: 'animation', label: 'Animation', badge: 'Motion & 3D', desc: 'GSAP, ScrollTrigger, Framer Motion & transitions' },
+  { kind: 'backend', label: 'Backend', badge: 'APIs & DB', desc: 'Route handlers, APIs, SQL/NoSQL & authentication' },
+  { kind: 'debugging', label: 'Debugging', badge: 'Root Cause', desc: 'Root-cause diagnosis, error tracing & bug fixes' },
+  { kind: 'testing', label: 'Testing', badge: 'Test Suites', desc: 'Unit, integration & Vitest/Jest test suites' },
+  { kind: 'review', label: 'Review', badge: 'Code Audit', desc: 'Security auditing, correctness & code quality' },
+  { kind: 'docs', label: 'Docs', badge: 'Markdown', desc: 'README updates, architectural docs & API guides' },
+  { kind: 'seo', label: 'SEO', badge: 'Audit & Meta', desc: 'Technical SEO audits, meta tags, sitemaps & crawlability' },
 ];
 
-const AGENT_TEMPLATES: Partial<Record<AgentKind, string[]>> = {
+const AGENT_TEMPLATES: Record<AgentKind, string[]> = {
   coding: [
     'Add the feature described below and verify it with tests',
     'Fix the failing build without changing behaviour',
@@ -48,31 +89,55 @@ const AGENT_TEMPLATES: Partial<Record<AgentKind, string[]>> = {
     'Plan this feature and list impacted files',
     'Break this refactor into safe, ordered steps',
     'Write a technical spec for the next sprint',
+    'Analyze architectural risks for this database migration',
+  ],
+  frontend: [
+    'Build responsive UI components matching the design',
+    'Refactor page layout and ensure Tailwind styling is clean',
+    'Improve accessibility and WCAG 2.1 compliance for this view',
+    'Create an accessible modal with keyboard focus trap',
+  ],
+  animation: [
+    'Add smooth GSAP entrance and ScrollTrigger animations',
+    'Implement Framer Motion page transitions with cleanup on unmount',
+    'Build an interactive 3D hero or canvas effect',
+    'Ensure all motion respects prefers-reduced-motion',
+  ],
+  backend: [
+    'Create a robust API route with input validation and error handling',
+    'Design and optimize database queries and schema definitions',
+    'Implement secure authentication and defense-in-depth checks',
+    'Build a reliable background webhook processor with retries',
   ],
   debugging: [
     'Reproduce this bug and fix the root cause',
     'Find why the build or test suite fails',
     'Trace the data flow and identify where values are wrong',
+    'Diagnose memory leak or unhandled exception in this route',
   ],
   testing: [
     'Add focused tests for the selected module',
     'Make this test deterministic and fast',
     'Generate edge-case tests for every exported function',
+    'Write comprehensive integration tests for the API routes',
   ],
   review: [
     'Review my uncommitted changes',
     'Look for correctness and security risks in this module',
     'Check for performance bottlenecks and unnecessary re-renders',
+    'Audit input sanitization and authorization boundaries',
   ],
   docs: [
     'Document this module for new contributors',
     'Update the README for the current setup',
     'Generate API documentation from TypeScript types',
+    'Write a comprehensive onboarding guide for the repository',
   ],
   seo: [
     'Audit this site and fix the highest-impact SEO issues',
     'Add per-route titles, descriptions, canonical and Open Graph tags',
     'Create robots.txt and a sitemap for every public route',
+    'Optimize Web Vitals (LCP, CLS, FID) and heading hierarchies',
   ],
 };
 
@@ -336,6 +401,11 @@ export function AssistantPanel() {
           <WelcomeScreen
             isAgent={isAgent}
             agentMode={agentMode}
+            onSelectAgent={(kind) => {
+              setComposerMode('agent');
+              setAgentMode(kind);
+              textareaRef.current?.focus();
+            }}
             project={project}
             selectedModel={selectedModel}
             chatSuggestions={chatSuggestions}
@@ -428,13 +498,14 @@ export function AssistantPanel() {
               <>
                 <div
                   className={cn(
-                    'relative h-6 w-[104px] shrink-0 rounded-md border border-line bg-panel-2 focus-within:border-accent',
+                    'relative h-6 min-w-[124px] max-w-[170px] shrink-0 rounded-md border border-line bg-panel-2 focus-within:border-accent',
                     busy && 'opacity-50',
                   )}
                 >
-                  <div className="pointer-events-none flex h-full items-center justify-between gap-1 pl-2 pr-1.5">
-                    <span className="truncate text-[10.5px] font-medium text-fg">
-                      {AGENT_OPTIONS.find((option) => option.kind === agentMode)?.label ?? agentMode}
+                  <div className="pointer-events-none flex h-full items-center justify-between gap-1.5 pl-2 pr-1.5">
+                    <span className="flex items-center gap-1.5 truncate text-[10.5px] font-medium text-fg">
+                      <span className="text-accent">{getAgentIcon(agentMode, 11)}</span>
+                      <span>{AGENT_OPTIONS.find((option) => option.kind === agentMode)?.label ?? agentMode}</span>
                     </span>
                     <ChevronDown size={10} className="shrink-0 text-faint" />
                   </div>
@@ -447,8 +518,8 @@ export function AssistantPanel() {
                     disabled={busy}
                   >
                     {AGENT_OPTIONS.map((option) => (
-                      <option key={option.kind} value={option.kind}>
-                        {option.label}
+                      <option key={option.kind} value={option.kind} className="bg-bg text-fg">
+                        {option.label} Agent — {option.desc}
                       </option>
                     ))}
                   </select>
@@ -727,6 +798,7 @@ const QUICK_ACTIONS = [
 function WelcomeScreen({
   isAgent,
   agentMode,
+  onSelectAgent,
   project,
   selectedModel,
   chatSuggestions,
@@ -737,6 +809,7 @@ function WelcomeScreen({
 }: {
   isAgent: boolean;
   agentMode: AgentKind;
+  onSelectAgent: (kind: AgentKind) => void;
   project: { name?: string } | null;
   selectedModel: { model: string; providerId: string } | null;
   chatSuggestions: string[];
@@ -779,6 +852,54 @@ function WelcomeScreen({
             {modelLabel}
           </button>
         ) : null}
+      </div>
+
+      {/* 10 Autonomous Agents Shelf */}
+      <div className="w-full max-w-[380px] space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-faint flex items-center gap-1.5">
+            <Bot size={12} className="text-accent" /> Autonomous Agents ({AGENT_OPTIONS.length})
+          </p>
+          <span className="text-[9px] text-accent font-medium">Click any role to activate</span>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          {AGENT_OPTIONS.map((opt) => {
+            const isSelected = isAgent && agentMode === opt.kind;
+            return (
+              <button
+                key={opt.kind}
+                type="button"
+                onClick={() => onSelectAgent(opt.kind)}
+                className={cn(
+                  'focus-ring flex items-center gap-2 rounded-md border p-2 text-left transition-all cursor-pointer group',
+                  isSelected
+                    ? 'border-accent bg-accent/12 text-fg shadow-xs ring-1 ring-accent/30'
+                    : 'border-line-soft bg-panel-2 text-muted hover:border-line hover:bg-panel-3 hover:text-fg',
+                )}
+              >
+                <div
+                  className={cn(
+                    'flex h-6 w-6 shrink-0 items-center justify-center rounded transition-colors',
+                    isSelected ? 'bg-accent text-white' : 'bg-panel-3 text-faint group-hover:text-fg',
+                  )}
+                >
+                  {getAgentIcon(opt.kind, 12)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="truncate text-[11px] font-semibold text-fg">{opt.label}</span>
+                    <span className="text-[8px] font-mono text-faint uppercase px-1 py-0.2 rounded bg-black/20">
+                      {opt.badge}
+                    </span>
+                  </div>
+                  <p className="truncate text-[9.5px] text-faint" title={opt.desc}>
+                    {opt.desc}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Suggestions / agent templates */}

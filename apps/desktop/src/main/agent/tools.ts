@@ -1264,10 +1264,12 @@ export class ToolRegistry {
   }
 
   forAgent(agent: AgentKind): AgentTool[] {
-    if (agent === 'planner' || agent === 'review') {
-      return [...this.tools.values()].filter((tool) => tool.readOnly);
-    }
-    return [...this.tools.values()].filter((tool) => !tool.agents || tool.agents.includes(agent));
+    return [...this.tools.values()].filter((tool) => {
+      if (agent === 'planner' || agent === 'review') {
+        if (!tool.readOnly) return false;
+      }
+      return !tool.agents || tool.agents.includes(agent);
+    });
   }
 
   schemas(agent: AgentKind): ToolSchema[] {
