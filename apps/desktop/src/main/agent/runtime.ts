@@ -289,9 +289,6 @@ export class AgentRuntimeService {
           for await (const delta of stream) {
             if (delta.type === 'text') {
               text += delta.text;
-              // The final step is buffered and emitted after unwrapping any
-              // {"final": ...} envelope, so raw JSON never reaches the timeline.
-              if (!finalStep) emitRun({ type: 'assistant', text: delta.text });
             } else if (delta.type === 'reasoning') {
               emitRun({ type: 'reasoning', text: delta.text });
             } else if (delta.type === 'tool_call') {
@@ -332,6 +329,18 @@ export class AgentRuntimeService {
           outputTokens: Math.round(estimateTokens(text)),
           durationMs: Date.now() - stepStarted,
         });
+        if (!finalStep) {
+          const envelope = parseToolEnvelope(text);
+          const hasCalls = calls.length > 0 || (envelope && envelope.calls.length > 0);
+          if (hasCalls) {
+            const stripped = stripEnvelope(text).trim();
+            if (stripped && !stripped.startsWith('{') && !stripped.startsWith('```json')) {
+              emitRun({ type: 'assistant', text: stripped });
+            }
+          } else if (text.trim() && !text.trim().startsWith('{') && !text.trim().startsWith('```json')) {
+            emitRun({ type: 'assistant', text: text.trim() });
+          }
+        }
         if (finalStep) {
           // Tools are disabled for this turn, so the streamed text is the final
           // answer. Ignore any stray envelope calls rather than executing a

@@ -513,6 +513,27 @@ export function AssistantPanel() {
   );
 }
 
+function isToolCallJson(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  if (
+    trimmed.startsWith('{') &&
+    (trimmed.includes('"name"') ||
+      trimmed.includes('"arguments"') ||
+      trimmed.includes('"calls"') ||
+      trimmed.includes('"tool_calls"'))
+  ) {
+    return true;
+  }
+  if (
+    trimmed.startsWith('```json') &&
+    (trimmed.includes('"name"') || trimmed.includes('"arguments"') || trimmed.includes('"calls"'))
+  ) {
+    return true;
+  }
+  return false;
+}
+
 function MessageBubble({
   message,
   streaming,
@@ -570,7 +591,7 @@ function MessageBubble({
         </div>
       ) : null}
 
-      {message.content.trim() ? (
+      {message.content.trim() && !isToolCallJson(message.content) ? (
         <div className="rounded-xl rounded-bl-sm border border-line-soft bg-panel-2 px-3 py-2">
           <Markdown>{message.content}</Markdown>
         </div>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Editor, { type OnMount } from '@monaco-editor/react';
 import { useAppStore, type EditorTab, type ProblemItem, type QuickEditState } from '../state/app';
-import { createEditorOptions, initMonaco } from '../lib/monaco';
+import { createEditorOptions, initMonaco, monaco } from '../lib/monaco';
 import { setActiveEditor } from '../lib/editorRegistry';
 import {
   absolutePath,
@@ -88,8 +88,20 @@ export function MonacoEditor({
       for (const disposable of disposables.current) disposable.dispose();
       disposables.current = [];
       setActiveEditor(null);
+      // Clean up orphaned Monaco text models to prevent memory leak (Theia memory architecture)
+      const currentTabs = useAppStore.getState().tabs;
+      const isOpen = currentTabs.some((t) => t.id === tab.id || (t.path && t.path === tab.path));
+      if (!isOpen) {
+        try {
+          const uri = monaco.Uri.parse(`file:///${tab.path ?? tab.id}`);
+          const model = monaco.editor.getModel(uri);
+          if (model) model.dispose();
+        } catch {
+          // ignore
+        }
+      }
     };
-  }, []);
+  }, [tab.id, tab.path]);
 
   // Auto save: debounce writes while the user keeps typing.
   useEffect(() => {

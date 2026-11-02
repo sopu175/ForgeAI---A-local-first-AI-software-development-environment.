@@ -296,13 +296,56 @@ Local models processing large multi-file diffs or extensive test plans can take 
 - **10-minute initial window:** Gives heavy models ample time for cold-loading from SSD and large prompt prefill without timing out.
 - **Inactivity refresh (180s):** The timeout timer automatically resets every time a token or chunk arrives. As long as the model is actively streaming code, requests **never time out**.
 
-### Monaco Keystroke Debouncing
+### Monaco & Eclipse Theia Performance Architecture
 
-Inline code completion in the editor is protected by a 200 ms cancellation-aware debounce (`token.onCancellationRequested`). Rapid sequential keystrokes automatically abort pending timers before any IPC call is dispatched, preventing Ollama queue saturation while typing.
+ForgeAI adopts performance patterns directly from the **[Microsoft Monaco Editor](https://github.com/microsoft/monaco-editor)** and **[Eclipse Theia](https://github.com/eclipse-theia/theia)** IDE platforms to guarantee responsive 60+ FPS editing even in large monorepos:
+
+1. **Large File & Long Line Protection (`maxTokenizationLineLength: 20000`, `stopRenderingLineAfter: 10000`):**
+   - Minified JavaScript, bundle maps, and large JSON dumps cannot freeze Monaco's syntax highlighting or lock the UI thread.
+2. **Optimized Whitespace & Folding Overhead:**
+   - Whitespace rendering is constrained to `selection`, drastically reducing DOM element allocation compared to full-document whitespace glyphs.
+   - Code folding uses the fast, zero-AST `indentation` strategy.
+3. **Hardware-Accelerated Smooth Scrolling:**
+   - Smooth caret animations (`cursorSmoothCaretAnimation: 'on'`) combined with `fastScrollSensitivity: 6` and `cursorSurroundingLines: 3` ensure fluid, edge-cushioned scrolling.
+4. **Memory Leak Prevention via Theia Model Disposal Lifecycle:**
+   - In standard Monaco setups, every opened file allocates an in-memory `ITextModel` that persists indefinitely.
+   - ForgeAI mirrors Eclipse Theia's model lifecycle: when a tab is closed, the associated model URI is checked against active editor tabs. If closed, `monaco.editor.getModel(uri)?.dispose()` immediately reclaims heap memory, preventing memory bloat across multi-hour coding sessions.
+5. **Keystroke Cancellation Debouncing:**
+   - Inline completions are debounced by 200 ms with active `token.onCancellationRequested` listeners. Rapid typing aborts prior requests before IPC dispatch, keeping Ollama's inference queue free of stale work.
 
 ---
 
-## 6. Sharing & Reproducing Models with Git
+## 6. How to Use ForgeAI Properly
+
+### 1. Model Selection & Roles
+- **Active Model Dropdown:** Click the model dropdown in the top-right header of the **AI Assistant** panel (or press `⌘⌥B` to toggle AI).
+- **Local Zero-Cost Inference:** Select `sopu-coder (Local)` (7B) for deep multi-file agentic tasks or `sopu-coder-fast (Local)` (4B) for high-speed autocomplete.
+- **Optional Cloud Models:** If you need Claude 3.5 Sonnet, DeepSeek V3/R1, or Groq, navigate to **Manage Models** (`⌘K ⌘S` → Models or click `Manage`), enter your API key, and enable the provider. The active model dropdown updates instantly.
+
+### 2. Autonomous Agent Mode (`⌘⇧↵`)
+- Switch the chat panel to **Agent** mode (or select **Coding**, **Planner**, **Debugging**, **Testing**, **Review**, **Docs**, or **SEO**).
+- Give the agent a high-level goal (e.g. `Implement authentication middleware and update routing in src/`).
+- **Unified Action Cards:**
+  - Instead of raw JSON dumps (`{"name": "read_file", ...}`), the agent renders clean, interactive **Action Cards**:
+    - 📄 **Read File**: Shows path, size, and offers 1-click **Open in Editor**.
+    - ✏️ **Edit File**: Shows exact file paths with live `+additions -deletions`.
+    - 💻 **Terminal Command**: Shows commands with exit codes, execution output, and quick **Copy Output**.
+    - 🧭 **Workspace Scan**: Shows indexed files and stack overview.
+  - Intermediate tool call steps can be expanded/collapsed individually.
+  - Review all file changes in the **Diffs** tab or the collapsible **File changes** drawer before approving writes.
+
+### 3. Inline AI Editing (`⌘K`)
+- In any code file, select a block of code (or leave cursor at target location) and press `⌘K`.
+- Type an instruction (e.g., `Add error boundary and typed props`).
+- Inspect the inline preview diff and press **Accept** (`Enter`) or **Discard** (`Esc`).
+
+### 4. Codebase Context Pinning (`📎 Attach`)
+- Click **📎 Attach** (or use the context file pills) to pin reference files directly into the prompt context for chat or agent runs.
+- ForgeAI will ground its reasoning in those files using local vector embeddings (`nomic-embed-text`) and keyword search.
+
+---
+
+## 7. Sharing & Reproducing Models with Git
 
 Raw GGUF model files are between 3 GB and 9 GB in size. Tracking multi-gigabyte binary blobs directly in Git is discouraged because:
 1. GitHub enforces a strict 100 MB file limit.
