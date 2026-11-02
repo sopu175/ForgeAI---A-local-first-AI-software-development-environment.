@@ -110,21 +110,21 @@ describe('model helpers', () => {
         name: 'Sopu Coder',
         providerId: 'ollama',
         installed: true,
-        capabilities: { chat: true, streaming: true, tools: true, embedding: false, thinking: false, completion: true },
+        capabilities: { tools: true, embedding: false, thinking: false, completion: true, vision: false },
       },
       {
         id: 'sopu-coder-fast',
         name: 'Sopu Coder Fast',
         providerId: 'ollama',
         installed: true,
-        capabilities: { chat: true, streaming: true, tools: true, embedding: false, thinking: false, completion: true },
+        capabilities: { tools: true, embedding: false, thinking: false, completion: true, vision: false },
       },
       {
         id: 'nomic-embed-text',
         name: 'Nomic Embed Text',
         providerId: 'ollama',
         installed: true,
-        capabilities: { chat: false, streaming: false, tools: false, embedding: true, thinking: false, completion: false },
+        capabilities: { tools: false, embedding: true, thinking: false, completion: false, vision: false },
       },
     ];
 

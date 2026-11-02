@@ -7,3 +7,4 @@ export * from './scanner';
 export * from './rules';
 export * from './specs';
 export * from './stack';
+export * from './router';

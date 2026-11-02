@@ -17,6 +17,7 @@ import {
   type RunningModel,
 } from '@forgeai/shared';
 import { buildProvider, type AIProvider } from '@forgeai/ai';
+import { ModelRouter, type RouteDecision, type RouteRequest } from '@forgeai/core';
 import type { Database } from '../db';
 import type { SettingsService } from './settings';
 import type { Broadcast } from './workspace';
@@ -202,6 +203,15 @@ export class ProvidersService {
 
   findModel(id: string): ModelInfo | undefined {
     return this.cache.models.find((model) => model.id === id);
+  }
+
+  async route(request: RouteRequest): Promise<RouteDecision> {
+    const models = await this.models(false);
+    const router = new ModelRouter(
+      () => models,
+      () => this.settings.get().modelRoles,
+    );
+    return router.route(request);
   }
 
   async resolveRole(role: ModelRole): Promise<RoleBinding> {

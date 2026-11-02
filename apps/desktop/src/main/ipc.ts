@@ -300,6 +300,7 @@ export function registerIpc(ctx: AppContext): () => void {
     return ctx.providers.keepOnly(str(providerId, 'providerId'), keep as string[]);
   });
   handle('providers:running', () => ctx.providers.running());
+  handle('providers:route', (request: unknown) => ctx.providers.route(request as any));
 
   // ── Conversations ────────────────────────────────────────────────────────
   handle('chat:list', (projectId: unknown) =>

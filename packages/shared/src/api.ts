@@ -22,6 +22,7 @@ import type {
   IndexStatus,
   ModelInfo,
   ModelRole,
+  RoleBinding,
   PermissionRequest,
   PermissionResponse,
   ProjectStack,
@@ -130,6 +131,11 @@ export interface ProvidersApi {
   /** Delete every model on a provider except the given names. Returns removed model ids. */
   keepOnly(providerId: string, keep: string[]): Promise<string[]>;
   running(): Promise<RunningModel[]>;
+  route(request: {
+    task: string;
+    requiredCapabilities?: { tools?: boolean; streaming?: boolean; embedding?: boolean; vision?: boolean; thinking?: boolean };
+    userOverride?: RoleBinding;
+  }): Promise<{ binding: RoleBinding; reason: string; fallbackUsed: boolean; model: ModelInfo }>;
 }
 
 export interface RuntimeApi {

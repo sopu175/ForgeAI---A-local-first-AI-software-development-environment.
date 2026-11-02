@@ -77,6 +77,7 @@ const api: ForgeApi = {
     removeModel: (providerId, model) => invoke('providers:removeModel', providerId, model),
     keepOnly: (providerId, keep) => invoke('providers:keepOnly', providerId, keep),
     running: () => invoke('providers:running'),
+    route: (request) => invoke('providers:route', request),
   },
   chat: {
     list: (projectId) => invoke('chat:list', projectId),
