@@ -18,6 +18,7 @@ const EVENT_NAMES: ReadonlySet<string> = new Set<ForgeEventName>([
   'app:open-workspace',
   'app:toast',
   'runtime:progress',
+  'models:train:log',
 ]);
 
 function invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
@@ -153,6 +154,11 @@ const api: ForgeApi = {
     list: (projectId, kind) => invoke('memory:list', projectId, kind),
     save: (memory) => invoke('memory:save', memory),
     remove: (id) => invoke('memory:remove', id),
+  },
+  tools: {
+    inspectUrl: (url, runAiAnalysis) => invoke('tools:inspectUrl', url, runAiAnalysis ?? true),
+    trainModel: (request) => invoke('tools:trainModel', request),
+    getTrainingStats: () => invoke('tools:getTrainingStats'),
   },
   events: {
     on: <K extends ForgeEventName>(event: K, callback: (payload: ForgeEvents[K]) => void) => {

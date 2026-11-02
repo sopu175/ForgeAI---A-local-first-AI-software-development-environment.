@@ -766,6 +766,13 @@ export function registerIpc(ctx: AppContext): () => void {
   });
   handle('memory:remove', (id: unknown) => ctx.db.deleteProjectMemory(str(id, 'id')));
 
+  // ── Tools & Model Training & URL Inspection ─────────────────────────────
+  handle('tools:inspectUrl', (url: unknown, runAiAnalysis: unknown) =>
+    ctx.tools.inspectUrl(str(url, 'url'), bool(runAiAnalysis ?? true, 'runAiAnalysis')),
+  );
+  handle('tools:trainModel', (request: unknown) => ctx.tools.trainModel(request as any));
+  handle('tools:getTrainingStats', () => ctx.tools.getTrainingStats());
+
   return () => {
     for (const controller of streams.values()) controller.abort(new Error('Application is shutting down'));
     streams.clear();

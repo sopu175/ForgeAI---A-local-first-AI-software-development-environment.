@@ -74,6 +74,7 @@ export interface ForgeEvents {
   'app:open-workspace': { root: string };
   'app:toast': { kind: 'info' | 'error' | 'success'; message: string };
   'runtime:progress': RuntimeStatus;
+  'models:train:log': { text: string; stream: 'stdout' | 'stderr' };
 }
 
 export type ForgeEventName = keyof ForgeEvents;
@@ -256,6 +257,87 @@ export interface MemoryApi {
   remove(id: string): Promise<void>;
 }
 
+export interface UrlInspectionIssue {
+  severity: 'critical' | 'warning' | 'info';
+  category: 'network' | 'security' | 'seo' | 'accessibility' | 'performance';
+  title: string;
+  description: string;
+  recommendation?: string;
+}
+
+export interface UrlInspectionResult {
+  url: string;
+  finalUrl: string;
+  statusCode: number;
+  statusText: string;
+  latencyMs: number;
+  contentLengthBytes: number;
+  contentType: string;
+  ssl: boolean;
+  securityHeaders: {
+    contentSecurityPolicy: boolean;
+    strictTransportSecurity: boolean;
+    xContentTypeOptions: boolean;
+    xFrameOptions: boolean;
+    referrerPolicy: boolean;
+    cors: boolean;
+  };
+  seo: {
+    title?: string;
+    titleLength: number;
+    description?: string;
+    descriptionLength: number;
+    canonical?: string;
+    viewport?: string;
+    robots?: string;
+    h1Count: number;
+    h2Count: number;
+    imagesCount: number;
+    imagesWithoutAlt: number;
+    openGraph: {
+      title?: string;
+      description?: string;
+      image?: string;
+      url?: string;
+    };
+    hasJsonLd: boolean;
+  };
+  issues: UrlInspectionIssue[];
+  aiAnalysis?: string;
+}
+
+export interface ModelTrainingStats {
+  datasetExists: boolean;
+  conversationsCount: number;
+  turnsCount: number;
+  datasetPath: string;
+  availableRecipes: Array<{ name: string; file: string; baseModel: string }>;
+  isTraining: boolean;
+}
+
+export interface TrainModelRequest {
+  mode: 'recipe' | 'export_only' | 'lora';
+  recipeName?: string;
+  baseModel?: string;
+}
+
+export interface TrainModelResponse {
+  success: boolean;
+  message: string;
+  output?: string;
+  modelCreated?: string;
+  stats?: {
+    conversations: number;
+    turns: number;
+  };
+}
+
+export interface ToolsApi {
+  inspectUrl(url: string, runAiAnalysis?: boolean): Promise<UrlInspectionResult>;
+  trainModel(request: TrainModelRequest): Promise<TrainModelResponse>;
+  getTrainingStats(): Promise<ModelTrainingStats>;
+}
+
 export interface AppApi {
   info(): Promise<AppInfo>;
   openExternal(url: string): Promise<void>;
@@ -281,6 +363,7 @@ export interface ForgeApi {
   terminal: TerminalApi;
   checkpoints: CheckpointsApi;
   memory: MemoryApi;
+  tools: ToolsApi;
   events: {
     on<K extends ForgeEventName>(event: K, callback: (payload: ForgeEvents[K]) => void): () => void;
   };

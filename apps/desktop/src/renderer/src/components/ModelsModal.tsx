@@ -27,8 +27,18 @@ import {
 import { useAppStore } from '../state/app';
 import { bytes, errorMessage, shortModelName } from '../lib/format';
 import { Modal, ModalHeader, ProgressBar, SectionLabel, Spinner, StatusDot, Toggle, cn } from './ui';
+import { TrainModelTab } from './TrainModelTab';
+import { UrlInspectorTab } from './UrlInspectorTab';
 
-type Tab = 'models' | 'providers' | 'roles';
+type Tab = 'models' | 'providers' | 'roles' | 'train' | 'inspect';
+
+const TAB_LABELS: Record<Tab, (installedCount: number) => string> = {
+  models: (count) => `Models${count ? ` (${count})` : ''}`,
+  providers: () => 'Providers',
+  roles: () => 'Roles',
+  train: () => 'Train Model',
+  inspect: () => 'URL Inspector',
+};
 
 const ROLE_LABELS: Record<ModelRole, string> = {
   chat: 'Chat',
@@ -259,17 +269,17 @@ export function ModelsModal() {
       </ModalHeader>
 
       <div className="flex items-center gap-1 border-b border-line-soft px-5">
-        {(['models', 'providers', 'roles'] as Tab[]).map((entry) => (
+        {(['models', 'providers', 'roles', 'train', 'inspect'] as Tab[]).map((entry) => (
           <button
             key={entry}
             type="button"
             onClick={() => setTab(entry)}
             className={cn(
               'focus-ring relative px-3 py-2.5 text-[12px] capitalize',
-              tab === entry ? 'text-fg-strong' : 'text-muted hover:text-fg',
+              tab === entry ? 'text-fg-strong font-medium' : 'text-muted hover:text-fg',
             )}
           >
-            {entry === 'models' ? `Models${installed.length ? ` (${installed.length})` : ''}` : entry}
+            {TAB_LABELS[entry](installed.length)}
             {tab === entry ? <span className="absolute inset-x-2 -bottom-px h-[2px] rounded bg-accent" /> : null}
           </button>
         ))}
@@ -796,6 +806,9 @@ export function ModelsModal() {
             </div>
           </div>
         ) : null}
+
+        {tab === 'train' ? <TrainModelTab /> : null}
+        {tab === 'inspect' ? <UrlInspectorTab /> : null}
       </div>
     </Modal>
   );

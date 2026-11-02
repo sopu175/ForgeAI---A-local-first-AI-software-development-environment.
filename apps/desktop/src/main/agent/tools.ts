@@ -910,6 +910,175 @@ const fetchUrlTool: AgentTool = {
   },
 };
 
+const inspectUrlTool: AgentTool = {
+  name: 'inspect_url',
+  description:
+    'Inspect a local dev server or live URL (e.g. http://localhost:3000, http://127.0.0.1:8080, https://...) for response latency, HTTP status, security headers (CSP, HSTS, nosniff, frame options, CORS), SEO metadata, headings, broken images, and mixed content. Returns detailed issues and suggested fixes.',
+  readOnly: true,
+  parameters: {
+    type: 'object',
+    properties: {
+      url: {
+        type: 'string',
+        description: 'The URL to inspect (supports localhost:port or full http/https URLs)',
+      },
+    },
+    required: ['url'],
+  },
+  schema: z.object({
+    url: z.string().min(1).max(2048),
+  }),
+  async execute(context, raw) {
+    const args = raw as { url: string };
+    let normalized = args.url.trim();
+    if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+      if (normalized.includes('localhost') || normalized.startsWith('127.0.0.1')) {
+        normalized = `http://${normalized}`;
+      } else {
+        normalized = `https://${normalized}`;
+      }
+    }
+
+    try {
+      const parsed = new URL(normalized);
+      const host = parsed.hostname.toLowerCase();
+      if (
+        host === '169.254.169.254' ||
+        host === 'metadata.google.internal' ||
+        host === 'instance-data' ||
+        host.startsWith('169.254.')
+      ) {
+        throw new Error('Fetching cloud metadata endpoints is prohibited for security.');
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message.includes('prohibited')) throw e;
+      throw new Error(`Invalid URL format: ${args.url}`);
+    }
+
+    const startTime = performance.now();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(new Error('Inspection request timed out after 20s')), 20_000);
+
+    try {
+      const res = await fetch(normalized, {
+        signal: controller.signal,
+        headers: {
+          'user-agent': 'ForgeAI-Inspector/0.1 (+local agent; web diagnostic tool)',
+          accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        },
+        redirect: 'follow',
+      });
+
+      const latencyMs = Math.round(performance.now() - startTime);
+      const contentType = res.headers.get('content-type') ?? '';
+      const body = await res.text();
+      const isHttps = res.url.startsWith('https://');
+
+      const issues: string[] = [];
+      const findings: string[] = [];
+
+      findings.push(`- **URL**: ${normalized} (resolved: ${res.url})`);
+      findings.push(`- **Status**: ${res.status} ${res.statusText}`);
+      findings.push(`- **Latency**: ${latencyMs}ms`);
+      findings.push(`- **Content-Type**: ${contentType || 'not specified'}`);
+      findings.push(`- **Content-Length**: ${body.length} bytes`);
+
+      // Status check
+      if (res.status >= 500) {
+        issues.push(`[CRITICAL] Server Error ${res.status}: Backend application threw an unhandled error or server crashed.`);
+      } else if (res.status >= 400) {
+        issues.push(`[CRITICAL] Client Error ${res.status}: Resource was not found or requires authentication.`);
+      }
+
+      // Security headers
+      const csp = res.headers.get('content-security-policy');
+      const hsts = res.headers.get('strict-transport-security');
+      const xContentType = res.headers.get('x-content-type-options');
+      const xFrame = res.headers.get('x-frame-options');
+      const cors = res.headers.get('access-control-allow-origin');
+
+      if (!csp) issues.push('[WARNING] Missing Content-Security-Policy (CSP) header: increases vulnerability to XSS attacks.');
+      if (isHttps && !hsts) issues.push('[WARNING] Missing Strict-Transport-Security (HSTS) header: connections not forced to HTTPS.');
+      if (!xContentType || !xContentType.toLowerCase().includes('nosniff')) {
+        issues.push('[WARNING] Missing X-Content-Type-Options: nosniff header: MIME-type sniffing is not prevented.');
+      }
+      if (!xFrame) issues.push('[WARNING] Missing X-Frame-Options header: page can be embedded in third-party iframes (Clickjacking risk).');
+      if (cors === '*') issues.push('[INFO] Wildcard CORS header detected (*): ensure sensitive endpoints restrict origins.');
+
+      // DOM & SEO check
+      if (contentType.includes('html') || body.includes('<html') || body.includes('<!DOCTYPE')) {
+        const titleMatch = body.match(/<title[^>]*>([^<]*)<\/title>/i);
+        const title = titleMatch && titleMatch[1] ? titleMatch[1].trim() : null;
+        if (!title) {
+          issues.push('[CRITICAL] Missing <title> tag in HTML.');
+        } else if (title.length < 20 || title.length > 70) {
+          issues.push(`[WARNING] Title tag length (${title.length} chars) is outside optimal 30-65 range: "${title}"`);
+        } else {
+          findings.push(`- **Title**: "${title}" (${title.length} chars)`);
+        }
+
+        const descMatch = body.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["'][^>]*>/i);
+        const desc = descMatch && descMatch[1] ? descMatch[1].trim() : null;
+        if (!desc) {
+          issues.push('[WARNING] Missing <meta name="description"> tag.');
+        } else {
+          findings.push(`- **Meta Description**: "${desc}" (${desc.length} chars)`);
+        }
+
+        const h1Matches = body.match(/<h1[^>]*>[\s\S]*?<\/h1>/gi) ?? [];
+        if (h1Matches.length === 0) {
+          issues.push('[WARNING] No <h1> tag found on page.');
+        } else if (h1Matches.length > 1) {
+          issues.push(`[WARNING] Multiple <h1> tags found (${h1Matches.length}). Use exactly one <h1> per page.`);
+        } else {
+          findings.push(`- **Heading**: 1 <h1> tag detected`);
+        }
+
+        const imgMatches = body.match(/<img[^>]*>/gi) ?? [];
+        let missingAlt = 0;
+        for (const img of imgMatches) {
+          if (!/\balt=(["'])(.*?)\1/i.test(img)) missingAlt++;
+        }
+        if (missingAlt > 0) {
+          issues.push(`[WARNING] ${missingAlt}/${imgMatches.length} <img> tags are missing alt attributes.`);
+        }
+
+        if (isHttps) {
+          const mixed = body.match(/(?:src|href)=["']http:\/\/[^"'>]+["']/gi) ?? [];
+          if (mixed.length > 0) {
+            issues.push(`[CRITICAL] Mixed Content: HTTPS page references ${mixed.length} insecure HTTP resources.`);
+          }
+        }
+      }
+
+      return [
+        `## URL Inspection Report for ${normalized}`,
+        '',
+        '### Overview',
+        ...findings,
+        '',
+        '### Issues Detected (' + issues.length + ')',
+        issues.length === 0 ? '- No critical issues detected! Clean configuration.' : issues.map((i) => `- ${i}`).join('\n'),
+      ].join('\n');
+    } catch (error) {
+      const latencyMs = Math.round(performance.now() - startTime);
+      const msg = error instanceof Error ? error.message : String(error);
+      return [
+        `## URL Inspection Failed for ${normalized}`,
+        `- **Status**: Connection Failed (${latencyMs}ms)`,
+        `- **Error**: ${msg}`,
+        '',
+        '### Recommended Actions',
+        '1. Ensure your local server is running (e.g. `npm run dev`).',
+        '2. Verify the port matches your dev server configuration.',
+        '3. Check network and firewall settings.',
+      ].join('\n');
+    } finally {
+      clearTimeout(timer);
+    }
+  },
+};
+
 const updateTaskTool: AgentTool = {
   name: 'update_task',
   description: 'Update the status of the spec task currently being implemented. Used during spec execution.',
@@ -1082,6 +1251,7 @@ const ALL_TOOLS: AgentTool[] = [
   gitLogTool,
   checkpointTool,
   fetchUrlTool,
+  inspectUrlTool,
   updateTaskTool,
   seoAuditTool,
 ];

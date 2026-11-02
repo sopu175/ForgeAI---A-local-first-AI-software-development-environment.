@@ -14,6 +14,7 @@ import { IndexerService } from './services/indexer';
 import { CheckpointService } from './services/checkpoints';
 import { SpecService } from './specs/service';
 import { AgentRuntimeService } from './agent/runtime';
+import { ToolsService } from './services/tools';
 
 export const LAST_WORKSPACE_KEY = 'workspace:last';
 
@@ -33,6 +34,7 @@ export interface AppContext {
   checkpoints: CheckpointService;
   specs: SpecService;
   agent: AgentRuntimeService;
+  tools: ToolsService;
   dispose(): void;
 }
 
@@ -88,6 +90,8 @@ export function createContext(): AppContext {
     specs,
   );
 
+  const tools = new ToolsService(db, workspace, providers, settings, broadcast);
+
   // File changes from any source (agent, terminal, external editor) should
   // refresh the source-control view.
   let gitTimer: NodeJS.Timeout | null = null;
@@ -118,6 +122,7 @@ export function createContext(): AppContext {
     checkpoints,
     specs,
     agent,
+    tools,
     dispose: () => {
       agent.cancelAll();
       runtime.dispose();
