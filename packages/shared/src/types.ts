@@ -602,7 +602,7 @@ export interface CompletionResponse {
 }
 
 export interface QuickEditRequest {
-  action: 'explain' | 'refactor' | 'tests' | 'docs';
+  action: 'explain' | 'refactor' | 'tests' | 'docs' | 'animation';
   code: string;
   language: string;
   path: string;

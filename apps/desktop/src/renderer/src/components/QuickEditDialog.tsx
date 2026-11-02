@@ -10,6 +10,7 @@ const ACTION_TITLES: Record<string, string> = {
   refactor: 'Refactor selection',
   tests: 'Generate tests',
   docs: 'Write documentation',
+  animation: 'Animate selection (GSAP / Motion)',
 };
 
 /** Quick-edit surface for explain/refactor/tests/docs on the current selection. */
@@ -36,7 +37,7 @@ export function QuickEditDialog() {
   if (!quickEdit) return null;
 
   const canApply = quickEdit.action !== 'explain';
-  const isCode = quickEdit.action === 'refactor' || quickEdit.action === 'tests';
+  const isCode = quickEdit.action === 'refactor' || quickEdit.action === 'tests' || quickEdit.action === 'animation';
 
   return (
     <Modal onClose={closeQuickEdit} width={760} className="max-h-[82vh] overflow-hidden">
@@ -121,7 +122,7 @@ export function QuickEditDialog() {
               onClick={applyQuickEditResult}
               disabled={!quickEdit.result || quickEdit.loading}
             >
-              {quickEdit.action === 'refactor' ? 'Apply replacement' : 'Insert at cursor'}
+              {quickEdit.action === 'refactor' || quickEdit.action === 'animation' ? 'Apply replacement' : 'Insert at cursor'}
             </button>
           ) : null}
         </div>

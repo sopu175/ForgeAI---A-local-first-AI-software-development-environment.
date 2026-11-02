@@ -286,7 +286,8 @@ export function MonacoEditor({
     menu('forge.inlineEdit', 'Inline AI Edit', '8_forge_ai', 1, () => runQuickEdit('refactor'));
     menu('forge.tests', 'Generate Tests', '8_forge_ai', 2, () => runQuickEdit('tests'));
     menu('forge.docs', 'Generate Documentation', '8_forge_ai', 3, () => runQuickEdit('docs'));
-    menu('forge.attach', 'Attach File to AI Chat', '8_forge_ai', 4, () => {
+    menu('forge.animate', 'Animate Selection (GSAP / Motion)', '8_forge_ai', 4, () => runQuickEdit('animation'));
+    menu('forge.attach', 'Attach File to AI Chat', '8_forge_ai', 5, () => {
       const path = currentPath();
       if (!path) return;
       const state = useAppStore.getState();

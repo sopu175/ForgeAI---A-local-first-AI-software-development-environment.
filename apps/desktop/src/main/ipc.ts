@@ -456,7 +456,7 @@ export function registerIpc(ctx: AppContext): () => void {
       model?: string;
     };
     const action = str(args.action, 'action');
-    if (!['explain', 'refactor', 'tests', 'docs'].includes(action)) throw new Error('Unknown quick edit action');
+    if (!['explain', 'refactor', 'tests', 'docs', 'animation'].includes(action)) throw new Error('Unknown quick edit action');
     if (!args.code?.trim()) throw new Error('Select some code first');
     const binding = await ctx.providers.resolveChat({ providerId: args.providerId, model: args.model });
     const providerConfig = ctx.providers.list().find((item) => item.id === binding.providerId);
@@ -468,6 +468,8 @@ export function registerIpc(ctx: AppContext): () => void {
       tests:
         'Write thorough automated tests for this code using the project framework when it can be inferred. Cover happy paths, edge cases and failures. Return the complete test file in one fenced code block.',
       docs: 'Write documentation for this code: a short summary, parameters, return values, errors and an example. Use markdown. Do not change the code.',
+      animation:
+        'Implement or enhance smooth animations and transitions for this code using standard libraries (such as GSAP, ScrollTrigger, Framer Motion, or CSS transitions). Respect accessibility (prefers-reduced-motion) and clean up timelines. Return the complete replacement code in one fenced code block, preceded by at most three bullet points describing the animation enhancements.',
     };
     const response = await collectChat(ctx, {
       providerId: binding.providerId,

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ChevronDown, ChevronRight, Copy, GitBranch, Play, RefreshCw, Trash2, X } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronRight, Copy, GitBranch, Play, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
 import type { GitLogEntry } from '@forgeai/shared';
 import { useAppStore, type BottomTab } from '../state/app';
 import { errorMessage, relativeTime } from '../lib/format';
@@ -101,6 +101,9 @@ export function BottomPanel() {
 function ProblemsPanel() {
   const problems = useAppStore((state) => state.problems);
   const openFile = useAppStore((state) => state.openFile);
+  const openAI = useAppStore((state) => state.openAI);
+  const sendChat = useAppStore((state) => state.sendChat);
+  const addContextFile = useAppStore((state) => state.addContextFile);
 
   const grouped = useMemo(() => {
     const map = new Map<string, typeof problems>();
@@ -150,6 +153,21 @@ function ProblemsPanel() {
               <span className="shrink-0 text-faint">
                 {problem.source} [{problem.line}:{problem.column}]
               </span>
+              <button
+                type="button"
+                className="focus-ring ml-1 rounded p-1 text-faint hover:bg-panel-3 hover:text-accent"
+                title="Ask AI to explain and fix this problem"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addContextFile(path);
+                  openAI('chat');
+                  void sendChat(
+                    `Please explain and fix this diagnostic error in \`${path}\` line ${problem.line}: "${problem.message}".`,
+                  );
+                }}
+              >
+                <Sparkles size={11} />
+              </button>
             </button>
           ))}
         </div>
