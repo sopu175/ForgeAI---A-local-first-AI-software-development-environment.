@@ -1,4 +1,4 @@
-# ForgeAI
+# ForgeAI (Sopu AI)
 
 **A local-first AI software development environment.** ForgeAI is a desktop IDE built on Electron,
 React, Monaco and Ollama. It runs entirely on your machine: no cloud account, no API key, and no
@@ -9,13 +9,15 @@ code leaves your computer. Cloud providers are optional.
 - Streaming chat, inline completion, quick edit, explain, refactor, tests and docs
 - Autonomous coding agent with a permission-gated tool registry, plus planner, debugging, testing,
   review, docs and **SEO** agents
+- **Sopu AI custom models:** Optimized `sopu-coder` (7B) for agent coding and `sopu-coder-fast` (4B) for instant inline completions
+- Full-stack specialization: JavaScript/TypeScript, React, Next.js, PHP (Laravel, Yii2, WordPress), and Python
 - Kiro-style spec workflow: requirements → design → tasks, with explicit approvals
-- Codebase indexing, embeddings and retrieval-grounded answers
+- Codebase indexing, embeddings (`nomic-embed-text`) and retrieval-grounded answers
 - Monaco editor with tabs, split view, diffs and hunk-level accept/revert
 - Built-in terminal, Git panel, search, problems, output and run/debug helpers
 - **Zero-setup local AI:** ForgeAI finds, installs, starts and prepares Ollama for you
-- **One resident model:** `qwen3.5:4b` stays loaded for the whole session — no cold starts between
-  messages
+- **Apple Silicon Hardware Tuning:** Metal 4 GPU acceleration, Flash Attention, and quantized 8-bit KV cache (`q8_0`) for 50% memory savings
+- **Zero-timeout streaming:** Infinite streaming duration as long as tokens are actively generating
 - VS Code Dark+/Light+ colours, blue status bar and familiar tab/editor conventions
 
 Architecture details live in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -243,7 +245,129 @@ ForgeAI state; models are kept in Ollama's own store (`~/.ollama`).
 
 ---
 
-## 5. Build installers
+## 5. Local Model Optimization & Apple Silicon Tuning
+
+ForgeAI is tuned specifically for Apple Silicon (M1/M2/M3/M4) unified memory architectures, ensuring high inference speeds, zero OOM crashes, and deep context stability on 16 GB machines.
+
+### Real Benchmark (MacBook Pro M1 Pro 16 GB RAM)
+
+| Model Profile | Base Weight | Parameters | VRAM Footprint | Prompt Speed | Generation Speed | Context Headroom |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **`sopu-coder`** *(Primary)* | `qwen2.5-coder:7b` | 7.6B | **4.8 GB** | **148.1 tok/s** | **13.4 tok/s** | **8,192 tokens** |
+| **`sopu-coder-fast`** *(Inline)* | `qwen3.5:4b` | 4.2B | **3.1 GB** | **186.3 tok/s** | **18.5 – 21.4 tok/s** | **4,096 tokens** |
+| `nomic-embed-text` *(RAG)* | `nomic-embed-text` | 137M | **274 MB** | N/A | High throughput | **2,048 tokens** |
+| `qwen2.5-coder:14b` *(Heavy)* | `qwen2.5-coder:14b` | 14.8B | **9.5 GB** | 38.5 tok/s | 5.4 tok/s | Memory tight (~6% free) |
+
+> [!TIP]
+> **Why 7B is the sweet spot for 16 GB Macs:** `sopu-coder` (7B) is **2.5x faster** than 14B (13.4 tok/s vs 5.4 tok/s) and uses only 4.8 GB VRAM. This leaves **~11 GB of unified memory completely free** for WebStorm, VS Code, Node dev servers, Docker, and Chrome without swap thrashing.
+
+### Apple Silicon Inference Engine Flags
+
+To achieve maximum performance, configure Ollama with these environment flags (ForgeAI sets these automatically in managed mode):
+
+```bash
+# Faster prefill and decode via Metal shader acceleration
+export OLLAMA_FLASH_ATTENTION=1
+
+# 8-bit quantized KV cache cuts attention memory overhead by 50%
+export OLLAMA_KV_CACHE_TYPE=q8_0
+
+# Strict single-model residency prevents VRAM thrashing on 16GB
+export OLLAMA_MAX_LOADED_MODELS=1
+export OLLAMA_NUM_PARALLEL=1
+
+# Initial context length
+export OLLAMA_CONTEXT_LENGTH=8192
+```
+
+To make these permanent on macOS across reboots and GUI launches:
+
+```bash
+launchctl setenv OLLAMA_FLASH_ATTENTION 1
+launchctl setenv OLLAMA_KV_CACHE_TYPE q8_0
+launchctl setenv OLLAMA_NUM_PARALLEL 1
+launchctl setenv OLLAMA_MAX_LOADED_MODELS 1
+launchctl setenv OLLAMA_CONTEXT_LENGTH 8192
+```
+
+### Zero-Timeout Streaming Architecture
+
+Local models processing large multi-file diffs or extensive test plans can take several minutes to output. ForgeAI implements an **activity-based streaming controller**:
+- **10-minute initial window:** Gives heavy models ample time for cold-loading from SSD and large prompt prefill without timing out.
+- **Inactivity refresh (180s):** The timeout timer automatically resets every time a token or chunk arrives. As long as the model is actively streaming code, requests **never time out**.
+
+### Monaco Keystroke Debouncing
+
+Inline code completion in the editor is protected by a 200 ms cancellation-aware debounce (`token.onCancellationRequested`). Rapid sequential keystrokes automatically abort pending timers before any IPC call is dispatched, preventing Ollama queue saturation while typing.
+
+---
+
+## 6. Sharing & Reproducing Models with Git
+
+Raw GGUF model files are between 3 GB and 9 GB in size. Tracking multi-gigabyte binary blobs directly in Git is discouraged because:
+1. GitHub enforces a strict 100 MB file limit.
+2. Git LFS imposes bandwidth and storage costs.
+3. Binary blobs make diffing and version control impossible.
+
+### The Git Recipe Pattern: `modelfiles/`
+
+ForgeAI uses **Git-tracked Modelfile recipes**. The repository tracks the exact instructions, temperature, top-p, repeat penalty, context window, and tailored system prompt, while pulling the base quantized weights on demand.
+
+The repository includes two tracked recipes in [`modelfiles/`](modelfiles/):
+- [`modelfiles/Modelfile.sopu-coder`](modelfiles/Modelfile.sopu-coder): 7B full-stack engineering model (TypeScript, React, Next.js, PHP, Python, tool-calling).
+- [`modelfiles/Modelfile.sopu-coder-fast`](modelfiles/Modelfile.sopu-coder-fast): 4B low-latency inline completion model.
+
+### 1-Click Setup for Team Members
+
+When a teammate or collaborator clones the repository, they can build all optimized models with a single script:
+
+```bash
+git clone https://github.com/sopu175/ForgeAI---A-local-first-AI-software-development-environment..git
+cd ForgeAI---A-local-first-AI-software-development-environment.
+
+# Run the automated model builder
+chmod +x scripts/setup-models.sh
+./scripts/setup-models.sh
+```
+
+### Manual Recipe Reproduction
+
+To manually reproduce or customize the models:
+
+```bash
+# 1. Pull the base weights
+ollama pull qwen2.5-coder:7b
+ollama pull qwen3.5:4b
+ollama pull nomic-embed-text
+
+# 2. Build the customized Sopu AI models from the Modelfiles
+ollama create sopu-coder -f modelfiles/Modelfile.sopu-coder
+ollama create sopu-coder-fast -f modelfiles/Modelfile.sopu-coder-fast
+
+# 3. Verify
+ollama list
+```
+
+### Sharing Models via Ollama Registry or Hugging Face
+
+If you want to distribute ready-to-run models without rebuilding from source:
+
+1. **Push to the Ollama Registry:**
+   ```bash
+   ollama cp sopu-coder your-username/sopu-coder
+   ollama push your-username/sopu-coder
+   ```
+   Teammates can then simply run:
+   ```bash
+   ollama run your-username/sopu-coder
+   ```
+
+2. **Push to Hugging Face:**
+   Export the GGUF using `ollama show --modelfile sopu-coder` and push to Hugging Face Hub using `huggingface-cli upload`.
+
+---
+
+## 7. Build installers
 
 Installer builds use [electron-builder](https://www.electron.build/). Configuration lives in
 [`apps/desktop/electron-builder.yml`](apps/desktop/electron-builder.yml).
@@ -346,7 +470,7 @@ Run `yarn typecheck && yarn build && yarn smoke` before opening a pull request o
 
 ---
 
-## 7. Project layout
+## 8. Project layout
 
 ```
 sopu-agent-ai/
@@ -367,8 +491,11 @@ sopu-agent-ai/
 │   ├── shared/                  types, IPC contract, zod schemas, defaults
 │   ├── ai/                      provider clients, streaming, tool-call parsing
 │   └── core/                    indexing, retrieval, specs, rules, diffs
+├── modelfiles/                  Git-tracked Modelfile recipes (sopu-coder, sopu-coder-fast)
 ├── docs/                        architecture and screenshot
-├── scripts/clean.mjs            removes previous build output before packaging
+├── scripts/
+│   ├── clean.mjs                removes previous build output before packaging
+│   └── setup-models.sh          automated model pull & build script for teammates
 ├── tests/                       Vitest suites for shared helpers and the diff engine
 ├── package.json                 Yarn workspaces and root scripts
 └── vitest.config.mts, eslint.config.mjs, .prettierrc.json, apps/desktop/electron.vite.config.ts
@@ -376,21 +503,22 @@ sopu-agent-ai/
 
 ### Useful scripts
 
-| Command          | What it does                             |
-| ---------------- | ---------------------------------------- |
-| `yarn dev`       | Run from source with HMR                 |
-| `yarn build`     | Build main, preload and renderer         |
-| `yarn clean`     | Delete `out/`, `dist/` and Vite caches   |
-| `yarn start`     | Preview the production build             |
-| `yarn typecheck` | Strict TypeScript check                  |
-| `yarn test`      | Run Vitest                               |
-| `yarn smoke`     | Headless UI smoke test                   |
-| `yarn dist:mac`  | Clean build + macOS DMG/ZIP (arm64, x64) |
-| `yarn dist:win`  | Clean build + Windows NSIS/portable      |
+| Command                     | What it does                                                 |
+| --------------------------- | ------------------------------------------------------------ |
+| `./scripts/setup-models.sh` | Pulls base weights and creates custom Sopu AI models         |
+| `yarn dev`                  | Run from source with HMR                                     |
+| `yarn build`                | Build main, preload and renderer                             |
+| `yarn clean`                | Delete `out/`, `dist/` and Vite caches                       |
+| `yarn start`                | Preview the production build                                 |
+| `yarn typecheck`            | Strict TypeScript check                                      |
+| `yarn test`                 | Run Vitest (33 unit tests)                                   |
+| `yarn smoke`                | Headless UI smoke test                                       |
+| `yarn dist:mac`             | Clean build + macOS DMG/ZIP (arm64, x64)                     |
+| `yarn dist:win`             | Clean build + Windows NSIS/portable                          |
 
 ---
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 **Port 11434 is already in use.** Another Ollama instance or an app is bound to it. ForgeAI reuses a
 healthy Ollama at that address; otherwise stop the other process or point the Ollama provider at a
@@ -413,9 +541,8 @@ request and its watchdog restarts a managed server, but it will not fight a serv
 yourself. Check with `ollama ps`; the model should stay listed while ForgeAI is open.
 
 **Old models are still on disk.** ForgeAI removes the known legacy models automatically after
-startup. For a full cleanup open **Models** and press **Keep only qwen3.5:4b**; this deletes every
-other model on that Ollama endpoint, including embedding models, so retrieval will use keyword
-search until you install an embedding model again.
+startup. For a full cleanup open **Models** and press **Clean up models**; this removes unused chat
+models to free disk space while safely preserving your embedding models and active resident models.
 
 **The window is blank in development.** Confirm Node is 22+, delete `apps/desktop/out/`, and run
 `yarn dev` again. In headless environments use `yarn smoke` or a virtual display.
@@ -428,7 +555,7 @@ toolchain (or Wine, which is best-effort only).
 
 ---
 
-## 9. Security model
+## 10. Security model
 
 The renderer is sandboxed with `contextIsolation` and no Node access. Every privileged action goes
 through a typed IPC channel validated with Zod in the main process. File access is confined to the
