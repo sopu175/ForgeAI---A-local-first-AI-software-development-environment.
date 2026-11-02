@@ -217,8 +217,8 @@ function registerInlineCompletions(): void {
           const response = await window.forge.ai.complete({
             filePath: model.uri.path,
             language: model.getLanguageId(),
-            prefix: prefix.slice(-5000),
-            suffix: suffix.slice(0, 2500),
+            prefix: prefix.slice(-1500),
+            suffix: suffix.slice(0, 800),
           });
           if (token.isCancellationRequested || !response.text) return { items: [] };
           return {

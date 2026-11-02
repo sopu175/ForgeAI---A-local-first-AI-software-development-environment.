@@ -379,7 +379,8 @@ export class AgentRuntimeService {
               this.settings.get().agent.parallelReadOnly,
             );
             for (const { call, observation } of pseudoResults) {
-              messages.push({ role: 'tool', content: observation, toolCallId: call.id });
+              const capped = this.capObservation(observation);
+              messages.push({ role: 'tool', content: capped, toolCallId: call.id });
             }
             if (envelope.final) summary = envelope.final;
             if (controller.signal.aborted) {
@@ -419,7 +420,8 @@ export class AgentRuntimeService {
           this.settings.get().agent.parallelReadOnly,
         );
         for (const { call, observation } of observations) {
-          messages.push({ role: 'tool', content: observation, toolCallId: call.id });
+          const capped = this.capObservation(observation);
+          messages.push({ role: 'tool', content: capped, toolCallId: call.id });
         }
         if (controller.signal.aborted) {
           cancelled = true;
@@ -692,32 +694,27 @@ export class AgentRuntimeService {
   }
 
   /**
-   * Keeps the conversation within the model context window by truncating old
-   * observations and dropping the oldest tool steps. The system prompt and the
-   * original task are never removed.
+   * Cap observation text once at the moment it is inserted. This bounds memory
+   * usage and keeps the prompt history append-only so the local model's Metal/CUDA
+   * KV cache remains valid across multi-step agent turns.
+   */
+  private capObservation(content: string, maxChars = 2800): string {
+    if (!content || content.length <= maxChars) return content;
+    return `${truncateMiddle(content, maxChars)}\n… [observation capped to preserve KV cache]`;
+  }
+
+  /**
+   * Keeps the conversation within the model context window while preserving the
+   * KV cache prefix. Never rewrites older observations in-place (which would invalidate
+   * cached attention matrices); drops whole oldest assistant/tool pairs when budget is blown.
    */
   private trimHistory(messages: ChatMessage[], contextLength: number, toolTokens = 0): void {
-    // Native tool schemas and the generated answer share the context window
-    // with the messages. Leaving room for both prevents silent truncation,
-    // which shows up as an empty model turn in the middle of an agent run.
     const budget = Math.max(1024, Math.floor(contextLength - toolTokens - 2048));
     const total = () =>
       messages.reduce((sum, message) => sum + estimateTokens(message.content) + (message.toolCalls ? 80 : 0), 0);
     if (total() <= budget) return;
 
-    for (const maxChars of [8000, 4000, 2000, 1000]) {
-      if (total() <= budget) break;
-      for (let index = 2; index < messages.length; index += 1) {
-        const message = messages[index];
-        if (message?.role === 'tool' && message.content.length > maxChars) {
-          messages[index] = {
-            ...message,
-            content: `${truncateMiddle(message.content, maxChars)}\n… [older observation truncated]`,
-          };
-        }
-      }
-    }
-    while (total() > budget && messages.length > 6) {
+    while (total() > budget && messages.length > 4) {
       const index = messages.findIndex(
         (message, at) => at >= 2 && message.role === 'assistant' && (message.toolCalls?.length ?? 0) > 0,
       );
