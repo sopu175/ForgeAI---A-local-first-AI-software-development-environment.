@@ -18,7 +18,7 @@ export async function assertOk(response: Response, label: string): Promise<void>
   );
 }
 
-export async function* iterateLines(response: Response): AsyncGenerator<string> {
+export async function* iterateLines(response: Response, activity?: { touch: () => void }): AsyncGenerator<string> {
   if (!response.body) throw new ProviderError('Response has no body');
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -27,6 +27,7 @@ export async function* iterateLines(response: Response): AsyncGenerator<string> 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+      activity?.touch();
       buffer += decoder.decode(value, { stream: true });
       let index = buffer.indexOf('\n');
       while (index !== -1) {
@@ -76,6 +77,60 @@ export function withTimeout(timeoutMs: number, external?: AbortSignal): AbortSig
     { once: true },
   );
   return controller.signal;
+}
+
+export interface ActivityController {
+  signal: AbortSignal;
+  touch: () => void;
+  done: () => void;
+}
+
+/**
+ * Creates an AbortSignal that stays alive indefinitely as long as streaming activity
+ * occurs. Initial timeout accommodates slow model loading/cold-swapping; subsequent
+ * tokens/chunks refresh the idle timeout so long generation turns never timeout prematurely.
+ */
+export function createActivityController(
+  initialTimeoutMs = 600_000,
+  idleTimeoutMs = 180_000,
+  external?: AbortSignal,
+): ActivityController {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  const resetTimer = (ms: number) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      controller.abort(new Error('Model response timed out (no data received)'));
+    }, ms);
+    timer.unref?.();
+  };
+
+  resetTimer(initialTimeoutMs);
+
+  if (external) {
+    if (external.aborted) {
+      controller.abort(external.reason);
+    } else {
+      external.addEventListener('abort', () => controller.abort(external.reason), { once: true });
+    }
+  }
+
+  controller.signal.addEventListener(
+    'abort',
+    () => {
+      if (timer) clearTimeout(timer);
+    },
+    { once: true },
+  );
+
+  return {
+    signal: controller.signal,
+    touch: () => resetTimer(idleTimeoutMs),
+    done: () => {
+      if (timer) clearTimeout(timer);
+    },
+  };
 }
 
 export function jsonErrorDetail(error: unknown): string {

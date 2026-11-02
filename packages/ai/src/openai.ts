@@ -15,6 +15,7 @@ import {
   parseArguments,
   parseSseData,
   withTimeout,
+  createActivityController,
 } from './http';
 import type { AIProvider, OpenAICompatibleOptions } from './types';
 import { toToolSchema } from './types';
@@ -60,7 +61,7 @@ export class OpenAICompatibleProvider implements AIProvider {
     this.kind = options.kind;
     this.baseUrl = options.baseUrl;
     this.headers = headersWithAuth(options.apiKey, options.headers);
-    this.timeoutMs = options.timeoutMs ?? 180_000;
+    this.timeoutMs = options.timeoutMs ?? 600_000;
   }
 
   private url(path: string): string {
@@ -166,41 +167,43 @@ export class OpenAICompatibleProvider implements AIProvider {
     if (request.tools?.length) body.tools = request.tools.map(toToolSchema);
     if (request.format === 'json') body.response_format = { type: 'json_object' };
 
-    const response = await fetch(this.url('/chat/completions'), {
-      method: 'POST',
-      headers: this.headers,
-      body: JSON.stringify(body),
-      signal: withTimeout(this.timeoutMs, signal),
-    });
-    await assertOk(response, `${this.kind} chat`);
+    const activity = createActivityController(this.timeoutMs, 180_000, signal);
+    try {
+      const response = await fetch(this.url('/chat/completions'), {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify(body),
+        signal: activity.signal,
+      });
+      await assertOk(response, `${this.kind} chat`);
 
-    const contentType = response.headers.get('content-type') ?? '';
-    if (!contentType.includes('text/event-stream') && contentType.includes('application/json')) {
-      yield* this.handleJsonResponse(response, signal);
-      return;
-    }
-
-    const pendingCalls = new Map<number, { id: string; name: string; args: string }>();
-    let promptTokens = 0;
-    let outputTokens = 0;
-    let finishReason: string | undefined;
-    let emittedDone = false;
-
-    const flushCalls = (): ChatDelta[] => {
-      const deltas: ChatDelta[] = [];
-      const sorted = [...pendingCalls.entries()].sort((a, b) => a[0] - b[0]);
-      for (const [, call] of sorted) {
-        if (!call.name) continue;
-        deltas.push({
-          type: 'tool_call',
-          call: { id: call.id || makeToolCallId(), name: call.name, arguments: parseArguments(call.args) },
-        });
+      const contentType = response.headers.get('content-type') ?? '';
+      if (!contentType.includes('text/event-stream') && contentType.includes('application/json')) {
+        yield* this.handleJsonResponse(response, signal);
+        return;
       }
-      pendingCalls.clear();
-      return deltas;
-    };
 
-    for await (const line of iterateLines(response)) {
+      const pendingCalls = new Map<number, { id: string; name: string; args: string }>();
+      let promptTokens = 0;
+      let outputTokens = 0;
+      let finishReason: string | undefined;
+      let emittedDone = false;
+
+      const flushCalls = (): ChatDelta[] => {
+        const deltas: ChatDelta[] = [];
+        const sorted = [...pendingCalls.entries()].sort((a, b) => a[0] - b[0]);
+        for (const [, call] of sorted) {
+          if (!call.name) continue;
+          deltas.push({
+            type: 'tool_call',
+            call: { id: call.id || makeToolCallId(), name: call.name, arguments: parseArguments(call.args) },
+          });
+        }
+        pendingCalls.clear();
+        return deltas;
+      };
+
+      for await (const line of iterateLines(response, activity)) {
       const data = parseSseData(line);
       if (!data) continue;
       let chunk: OpenAiChunk;
@@ -242,12 +245,15 @@ export class OpenAICompatibleProvider implements AIProvider {
         // Usage arrives in a final chunk after finish_reason on most servers.
       }
     }
-    for (const deltaOut of flushCalls()) yield deltaOut;
-    if (promptTokens || outputTokens) {
-      yield { type: 'usage', promptTokens, outputTokens };
+      for (const deltaOut of flushCalls()) yield deltaOut;
+      if (promptTokens || outputTokens) {
+        yield { type: 'usage', promptTokens, outputTokens };
+      }
+      emittedDone = true;
+      if (emittedDone) yield { type: 'done', stopReason: finishReason };
+    } finally {
+      activity.done();
     }
-    emittedDone = true;
-    if (emittedDone) yield { type: 'done', stopReason: finishReason };
   }
 
   private async *handleJsonResponse(response: Response, signal: AbortSignal): AsyncIterable<ChatDelta> {

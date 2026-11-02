@@ -802,7 +802,7 @@ const fetchUrlTool: AgentTool = {
     });
     if (response.decision !== 'approved') throw new ToolDenied();
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15_000);
+    const timer = setTimeout(() => controller.abort(new Error('Network request timed out after 30s')), 30_000);
     try {
       const result = await fetch(url, {
         signal: controller.signal,

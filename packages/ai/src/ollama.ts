@@ -11,7 +11,7 @@ import {
   type RunningModel,
 } from '@forgeai/shared';
 import { makeToolCallId, parseArguments } from './http';
-import { iterateLines, assertOk, withTimeout, headersWithAuth, joinUrl } from './http';
+import { iterateLines, assertOk, withTimeout, createActivityController, headersWithAuth, joinUrl } from './http';
 import { ProviderError, type AIProvider, type OllamaOptions } from './types';
 import { toToolSchema } from './types';
 
@@ -58,7 +58,7 @@ export class OllamaProvider implements AIProvider {
     this.id = options.id;
     this.baseUrl = options.baseUrl;
     this.headers = headersWithAuth(options.apiKey, options.headers);
-    this.timeoutMs = options.timeoutMs ?? 120_000;
+    this.timeoutMs = options.timeoutMs ?? 600_000;
   }
 
   private url(path: string): string {
@@ -214,20 +214,22 @@ export class OllamaProvider implements AIProvider {
     body.think = request.thinking ?? false;
     if (request.format) body.format = request.format;
 
-    const response = await fetch(this.url('/api/chat'), {
-      method: 'POST',
-      headers: this.headers,
-      body: JSON.stringify(body),
-      signal: withTimeout(this.timeoutMs, signal),
-    });
-    await assertOk(response, 'Ollama chat');
+    const activity = createActivityController(this.timeoutMs, 180_000, signal);
+    try {
+      const response = await fetch(this.url('/api/chat'), {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify(body),
+        signal: activity.signal,
+      });
+      await assertOk(response, 'Ollama chat');
 
-    const emittedCalls = new Set<string>();
-    let promptTokens = 0;
-    let outputTokens = 0;
-    let tokensPerSecond: number | undefined;
+      const emittedCalls = new Set<string>();
+      let promptTokens = 0;
+      let outputTokens = 0;
+      let tokensPerSecond: number | undefined;
 
-    for await (const line of iterateLines(response)) {
+      for await (const line of iterateLines(response, activity)) {
       let chunk: OllamaChatChunk;
       try {
         chunk = JSON.parse(line) as OllamaChatChunk;
@@ -266,7 +268,10 @@ export class OllamaProvider implements AIProvider {
     }
     if (promptTokens || outputTokens) yield { type: 'usage', promptTokens, outputTokens, tokensPerSecond };
     yield { type: 'done' };
+  } finally {
+    activity.done();
   }
+}
 
   async embed(request: EmbedRequest, signal: AbortSignal): Promise<EmbedResponse> {
     const response = await fetch(this.url('/api/embed'), {

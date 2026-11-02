@@ -96,11 +96,22 @@ async function collectChat(
 ): Promise<{ text: string; reasoning: string; model: string }> {
   const provider = ctx.providers.build(request.providerId);
   const controller = new AbortController();
-  const timer = setTimeout(
+  const timeoutMs = request.timeoutMs ?? 600_000;
+  let timer: ReturnType<typeof setTimeout> | null = setTimeout(
     () => controller.abort(new Error('The model did not answer in time')),
-    request.timeoutMs ?? 180_000,
+    timeoutMs,
   );
   timer.unref?.();
+
+  const resetTimer = () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(
+      () => controller.abort(new Error('The model did not answer in time')),
+      180_000,
+    );
+    timer.unref?.();
+  };
+
   let text = '';
   let reasoning = '';
   const started = Date.now();
@@ -116,9 +127,13 @@ async function collectChat(
       },
       controller.signal,
     )) {
-      if (delta.type === 'text') text += delta.text;
-      else if (delta.type === 'reasoning') reasoning += delta.text;
-      else if (delta.type === 'error') throw new Error(delta.message);
+      if (delta.type === 'text') {
+        text += delta.text;
+        resetTimer();
+      } else if (delta.type === 'reasoning') {
+        reasoning += delta.text;
+        resetTimer();
+      } else if (delta.type === 'error') throw new Error(delta.message);
       else if (delta.type === 'usage') {
         ctx.db.recordUsage({
           projectId: request.projectId,
@@ -130,7 +145,7 @@ async function collectChat(
       }
     }
   } finally {
-    clearTimeout(timer);
+    if (timer) clearTimeout(timer);
   }
   return { text, reasoning, model: request.model };
 }
@@ -391,7 +406,7 @@ export function registerIpc(ctx: AppContext): () => void {
       temperature: 0.1,
       maxTokens: settings.completion.maxTokens,
       contextLength: providerConfig?.config.contextLength ?? 8192,
-      timeoutMs: 60_000,
+      timeoutMs: 120_000,
       messages: [
         {
           role: 'system',
@@ -643,7 +658,7 @@ export function registerIpc(ctx: AppContext): () => void {
       temperature: 0.1,
       maxTokens: 120,
       contextLength: config?.config.contextLength ?? 8192,
-      timeoutMs: 60_000,
+      timeoutMs: 180_000,
       messages: [
         {
           role: 'system',
