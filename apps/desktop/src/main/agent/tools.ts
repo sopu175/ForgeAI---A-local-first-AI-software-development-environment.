@@ -152,6 +152,46 @@ function isDangerousCommand(command: string): boolean {
   return patterns.some((pattern) => pattern.test(command));
 }
 
+export function sanitizeSubprocessEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const SENSITIVE_KEY_PATTERN = /(?:KEY|TOKEN|SECRET|PASSWORD|PASSWD|AUTH|CREDENTIAL|PRIVATE|ACCESS_KEY|BEARER)/i;
+  const sanitized: NodeJS.ProcessEnv = {};
+  for (const [key, value] of Object.entries(env)) {
+    if (value === undefined) continue;
+    // Always preserve vital OS and system environment variables
+    const upper = key.toUpperCase();
+    if (
+      [
+        'PATH',
+        'HOME',
+        'USER',
+        'SHELL',
+        'TMPDIR',
+        'TEMP',
+        'TMP',
+        'APPDATA',
+        'LOCALAPPDATA',
+        'SYSTEMROOT',
+        'WINDIR',
+        'COMSPEC',
+        'LANG',
+        'LC_ALL',
+        'NODE_ENV',
+        'TERM',
+        'COLORTERM',
+      ].includes(upper)
+    ) {
+      sanitized[key] = value;
+      continue;
+    }
+    // Filter out credentials and sensitive keys from being passed to subprocesses
+    if (SENSITIVE_KEY_PATTERN.test(key)) {
+      continue;
+    }
+    sanitized[key] = value;
+  }
+  return sanitized;
+}
+
 function shellCommand(command: string): { shell: string; args: string[] } {
   if (process.platform === 'win32') {
     const comspec = process.env.COMSPEC || 'cmd.exe';
@@ -192,7 +232,7 @@ async function runShell(
   return new Promise((resolve) => {
     const child = spawn(shell, args, {
       cwd,
-      env: { ...process.env, FORGEAI_AGENT: '1', TERM: 'dumb', NO_COLOR: '1' },
+      env: { ...sanitizeSubprocessEnv(process.env), FORGEAI_AGENT: '1', TERM: 'dumb', NO_COLOR: '1' },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let output = '';
@@ -815,6 +855,21 @@ const fetchUrlTool: AgentTool = {
   async execute(context, raw) {
     const { url } = raw as { url: string };
     if (!/^https?:\/\//i.test(url)) throw new Error('Only http(s) URLs are supported.');
+    try {
+      const parsed = new URL(url);
+      const host = parsed.hostname.toLowerCase();
+      if (
+        host === '169.254.169.254' ||
+        host === 'metadata.google.internal' ||
+        host === 'instance-data' ||
+        host.startsWith('169.254.')
+      ) {
+        throw new Error('Fetching cloud metadata endpoints is prohibited for security.');
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message.includes('prohibited')) throw e;
+      throw new Error('Invalid URL format');
+    }
     const response = await context.permissions.require({
       kind: 'network',
       title: 'Fetch external URL',
