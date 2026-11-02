@@ -1,5 +1,25 @@
 import { ProviderError } from './types';
 
+// Configure global undici dispatcher in Node.js runtime to eliminate "Headers Timeout Error"
+// when local models take time to cold-load weights or compute large context prefill.
+if (typeof process !== 'undefined') {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const undici = require('undici');
+    if (undici?.setGlobalDispatcher && undici?.Agent) {
+      undici.setGlobalDispatcher(
+        new undici.Agent({
+          headersTimeout: 0, // Disable header timeout waiting for local model generation
+          bodyTimeout: 0,    // Disable body timeout for streaming responses
+          connectTimeout: 60_000,
+        }),
+      );
+    }
+  } catch {
+    // In web worker or browser environments, global fetch is native
+  }
+}
+
 export async function assertOk(response: Response, label: string): Promise<void> {
   if (response.ok) return;
   let detail = '';
@@ -112,6 +132,12 @@ export async function safeFetch(url: string, init?: RequestInit): Promise<Respon
     if (error instanceof Error && error.message.includes('fetch failed')) {
       const cause = (error as { cause?: unknown }).cause;
       if (cause instanceof Error) {
+        if (cause.message.includes('Headers Timeout Error')) {
+          throw new Error(
+            'Local model took too long to return initial headers. The model may still be loading into RAM/VRAM or computing prompt prefill.',
+            { cause },
+          );
+        }
         throw new Error(`fetch failed (${cause.message})`, { cause });
       }
       if (cause && typeof cause === 'object' && 'code' in cause) {

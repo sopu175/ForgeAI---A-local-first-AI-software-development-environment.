@@ -699,17 +699,24 @@ export const useAppStore = create<AppState>()((set, get) => ({
     const tabId = id ?? get().activeTabId;
     if (!tabId) return;
     const tab = get().tabs.find((entry) => entry.id === tabId);
-    if (!tab || tab.kind !== 'file' || !tab.path || tab.content === tab.saved) return;
+    if (!tab || tab.kind !== 'file' || !tab.path) return;
+    if (tab.content === tab.saved) {
+      get().toast('info', `${tab.title} is up to date.`);
+      return;
+    }
     const content = await applyFormatOnSave(tab);
     try {
       const result = await window.forge.workspace.writeFile(tab.path, content);
       set((state) => ({
         tabs: state.tabs.map((entry) =>
-          entry.id === tabId ? { ...entry, saved: entry.content, mtime: result.mtime } : entry,
+          entry.id === tabId ? { ...entry, content, saved: content, mtime: result.mtime } : entry,
         ),
       }));
+      get().toast('success', `Saved ${tab.title}`);
+      void get().refreshTree();
+      void get().refreshGit();
     } catch (error) {
-      get().toast('error', errorMessage(error));
+      get().toast('error', `Save failed: ${errorMessage(error)}`);
     }
   },
 

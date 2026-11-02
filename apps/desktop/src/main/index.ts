@@ -7,6 +7,23 @@ import { installMenu } from './menu';
 import { broadcast } from './broadcast';
 import { createMainWindow, focusMainWindow, installContentSecurityPolicy, installSecurity } from './window';
 
+// Configure undici dispatcher globally to disable headers/body timeouts for local AI models
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const undici = require('undici');
+  if (undici?.setGlobalDispatcher && undici?.Agent) {
+    undici.setGlobalDispatcher(
+      new undici.Agent({
+        headersTimeout: 0,
+        bodyTimeout: 0,
+        connectTimeout: 60_000,
+      }),
+    );
+  }
+} catch {
+  // fallback if undici is not modularized
+}
+
 app.setName('ForgeAI');
 app.setPath('userData', path.join(app.getPath('appData'), 'ForgeAI'));
 

@@ -77,7 +77,8 @@ export class WorkspaceService {
   }
 
   async open(rootInput: string): Promise<ProjectSummary> {
-    const resolved = await fs.realpath(rootInput);
+    const rawResolved = await fs.realpath(rootInput);
+    const resolved = this.stripPrefix(rawResolved);
     const stat = await fs.stat(resolved);
     if (!stat.isDirectory()) throw new Error('The selected path is not a directory');
 
@@ -194,13 +195,31 @@ export class WorkspaceService {
     }
   }
 
-  private isWithinRoot(candidate: string, root: string): boolean {
+  private stripPrefix(p: string): string {
     if (process.platform === 'win32') {
-      const c = candidate.toLowerCase();
-      const r = root.toLowerCase();
+      let cleaned = p;
+      if (cleaned.startsWith('\\\\?\\UNC\\')) {
+        return '\\\\' + cleaned.slice(8);
+      }
+      if (cleaned.startsWith('\\\\?\\')) {
+        return cleaned.slice(4);
+      }
+      return cleaned;
+    }
+    return p;
+  }
+
+  private isWithinRoot(candidate: string, root: string): boolean {
+    const cClean = this.stripPrefix(candidate);
+    const rClean = this.stripPrefix(root);
+    if (process.platform === 'win32') {
+      const c = path.normalize(cClean).toLowerCase();
+      const r = path.normalize(rClean).toLowerCase();
       return c === r || c.startsWith(r.endsWith(path.sep) ? r : r + path.sep);
     }
-    return candidate === root || candidate.startsWith(root.endsWith(path.sep) ? root : root + path.sep);
+    const c = path.normalize(cClean);
+    const r = path.normalize(rClean);
+    return c === r || c.startsWith(r.endsWith(path.sep) ? r : r + path.sep);
   }
 
   async resolveSafe(relative: string, allowMissing = true): Promise<string> {
@@ -219,7 +238,8 @@ export class WorkspaceService {
     let existing = absolute;
     while (true) {
       try {
-        const real = await fs.realpath(existing);
+        const rawReal = await fs.realpath(existing);
+        const real = this.stripPrefix(rawReal);
         if (!this.isWithinRoot(real, root)) throw new Error('Symlink escapes the workspace');
         break;
       } catch (error) {
@@ -315,6 +335,9 @@ export class WorkspaceService {
     await fs.mkdir(path.dirname(absolute), { recursive: true });
     await fs.writeFile(absolute, content, 'utf8');
     const stat = await fs.stat(absolute);
+    const normalized = normalizeRelative(relative);
+    this.broadcast('workspace:changed', { type: 'change', path: normalized });
+    for (const listener of this.fileEventListeners) listener([{ type: 'change', path: normalized }]);
     return { mtime: stat.mtimeMs };
   }
 
@@ -322,11 +345,17 @@ export class WorkspaceService {
     const absolute = await this.resolveSafe(relative);
     await fs.mkdir(path.dirname(absolute), { recursive: true });
     await fs.writeFile(absolute, content, { encoding: 'utf8', flag: 'wx' });
+    const normalized = normalizeRelative(relative);
+    this.broadcast('workspace:changed', { type: 'add', path: normalized });
+    for (const listener of this.fileEventListeners) listener([{ type: 'add', path: normalized }]);
   }
 
   async createDirectory(relative: string): Promise<void> {
     const absolute = await this.resolveSafe(relative);
     await fs.mkdir(absolute, { recursive: true });
+    const normalized = normalizeRelative(relative);
+    this.broadcast('workspace:changed', { type: 'addDir', path: normalized });
+    for (const listener of this.fileEventListeners) listener([{ type: 'addDir', path: normalized }]);
   }
 
   async rename(oldRelative: string, newRelative: string): Promise<void> {
@@ -339,14 +368,29 @@ export class WorkspaceService {
     if (exists) throw new Error('A file or folder with that name already exists');
     await fs.mkdir(path.dirname(to), { recursive: true });
     await fs.rename(from, to);
+    const oldNorm = normalizeRelative(oldRelative);
+    const newNorm = normalizeRelative(newRelative);
+    this.broadcast('workspace:changed', { type: 'unlink', path: oldNorm });
+    this.broadcast('workspace:changed', { type: 'add', path: newNorm });
+    for (const listener of this.fileEventListeners) {
+      listener([
+        { type: 'unlink', path: oldNorm },
+        { type: 'add', path: newNorm },
+      ]);
+    }
   }
 
   async remove(relatives: string[], approved: boolean): Promise<void> {
     if (!approved) throw new Error('Deletion requires explicit approval');
+    const events: WorkspaceChangeEvent[] = [];
     for (const relative of relatives) {
       const absolute = await this.resolveSafe(relative, false);
       await fs.rm(absolute, { recursive: true, force: false });
+      const normalized = normalizeRelative(relative);
+      events.push({ type: 'unlink', path: normalized });
+      this.broadcast('workspace:changed', { type: 'unlink', path: normalized });
     }
+    for (const listener of this.fileEventListeners) listener(events);
   }
 
   async reveal(relative: string): Promise<void> {

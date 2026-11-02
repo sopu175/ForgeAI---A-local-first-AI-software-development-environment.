@@ -130,7 +130,7 @@ export function Explorer() {
   // re-fetch directory listings for all currently expanded folders so new files and subdirectories
   // appear immediately in the explorer without collapsing folders.
   useEffect(() => {
-    const expandedDirs = Object.keys(localChildren);
+    const expandedDirs = Array.from(new Set([...expanded, ...Object.keys(localChildren)]));
     if (expandedDirs.length === 0) return;
     let cancelled = false;
     void Promise.all(
@@ -163,7 +163,7 @@ export function Explorer() {
     return () => {
       cancelled = true;
     };
-  }, [files]);
+  }, [files, expanded]);
 
   useEffect(() => {
     if (showFilter) filterRef.current?.focus();
@@ -235,14 +235,24 @@ export function Explorer() {
         if (!path) return;
         try {
           await window.forge.workspace.createFile(path);
-          await refreshTree();
-          await openFile(path);
           const parent = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '';
           if (parent) {
             useAppStore.setState((state) => ({
               expanded: state.expanded.includes(parent) ? state.expanded : [...state.expanded, parent],
             }));
+            const entries = await window.forge.workspace.list(parent);
+            setLocalChildren((prev) => ({
+              ...prev,
+              [parent]: entries.map((e) => ({
+                name: e.name,
+                path: e.path,
+                type: e.type,
+                children: e.type === 'directory' ? [] : undefined,
+              })),
+            }));
           }
+          await refreshTree();
+          await openFile(path);
         } catch (error) {
           toast('error', errorMessage(error));
         }
@@ -260,6 +270,22 @@ export function Explorer() {
         if (!path) return;
         try {
           await window.forge.workspace.createDirectory(path);
+          const parent = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '';
+          if (parent) {
+            useAppStore.setState((state) => ({
+              expanded: state.expanded.includes(parent) ? state.expanded : [...state.expanded, parent],
+            }));
+            const entries = await window.forge.workspace.list(parent);
+            setLocalChildren((prev) => ({
+              ...prev,
+              [parent]: entries.map((e) => ({
+                name: e.name,
+                path: e.path,
+                type: e.type,
+                children: e.type === 'directory' ? [] : undefined,
+              })),
+            }));
+          }
           await refreshTree();
         } catch (error) {
           toast('error', errorMessage(error));
@@ -279,6 +305,19 @@ export function Explorer() {
       action: async () => {
         try {
           await window.forge.workspace.remove([node.path], true);
+          const parent = node.path.includes('/') ? node.path.slice(0, node.path.lastIndexOf('/')) : '';
+          if (parent) {
+            const entries = await window.forge.workspace.list(parent);
+            setLocalChildren((prev) => ({
+              ...prev,
+              [parent]: entries.map((e) => ({
+                name: e.name,
+                path: e.path,
+                type: e.type,
+                children: e.type === 'directory' ? [] : undefined,
+              })),
+            }));
+          }
           await refreshTree();
           toast('success', `Deleted ${node.name}`);
         } catch (error) {
@@ -298,6 +337,22 @@ export function Explorer() {
         if (!next || next === node.path) return;
         try {
           await window.forge.workspace.rename(node.path, next);
+          const oldParent = node.path.includes('/') ? node.path.slice(0, node.path.lastIndexOf('/')) : '';
+          const newParent = next.includes('/') ? next.slice(0, next.lastIndexOf('/')) : '';
+          for (const parent of [oldParent, newParent]) {
+            if (parent) {
+              const entries = await window.forge.workspace.list(parent);
+              setLocalChildren((prev) => ({
+                ...prev,
+                [parent]: entries.map((e) => ({
+                  name: e.name,
+                  path: e.path,
+                  type: e.type,
+                  children: e.type === 'directory' ? [] : undefined,
+                })),
+              }));
+            }
+          }
           await refreshTree();
           useAppStore.setState((state) => ({ tabs: state.tabs.filter((tab) => tab.path !== node.path) }));
         } catch (error) {
@@ -441,7 +496,14 @@ export function Explorer() {
           >
             <ListFilter size={13} />
           </IconButton>
-          <IconButton label="Refresh" onClick={() => void refreshTree()} title="Refresh explorer">
+          <IconButton
+            label="Refresh"
+            onClick={async () => {
+              setLocalChildren({});
+              await refreshTree();
+            }}
+            title="Refresh explorer"
+          >
             <RefreshCw size={12} />
           </IconButton>
         </div>

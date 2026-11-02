@@ -398,7 +398,8 @@ export class OllamaRuntime {
   private async startServer(binary: string, config: ProviderConfig, signal: AbortSignal | null): Promise<void> {
     if (this.server && !this.server.killed) return;
     const url = new URL(config.baseUrl);
-    const host = `${url.hostname}:${url.port || '11434'}`;
+    const hostname = process.platform === 'win32' && url.hostname === 'localhost' ? '127.0.0.1' : url.hostname;
+    const host = `${hostname}:${url.port || '11434'}`;
     const logDir = path.join(this.userDataDir, 'logs');
     await fs.mkdir(logDir, { recursive: true });
     const logPath = path.join(logDir, 'ollama.log');

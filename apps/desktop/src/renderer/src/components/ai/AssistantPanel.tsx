@@ -262,56 +262,62 @@ export function AssistantPanel() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-1.5 border-b border-line-soft px-2 py-1.5">
-        <select
-          value={conversationId ?? ''}
-          onChange={(event) => {
-            if (event.target.value) void selectConversation(event.target.value);
-          }}
-          className="h-7 min-w-0 flex-1 border-transparent bg-transparent text-[11px] text-muted hover:border-line focus:border-accent"
-          title="Conversation history"
-        >
-          <option value="">New conversation</option>
-          {conversations.map((conversation) => (
-            <option key={conversation.id} value={conversation.id}>
-              {conversation.title || 'Untitled chat'}
-            </option>
-          ))}
-        </select>
+        <div className="relative flex min-w-0 flex-1 items-center">
+          <select
+            value={conversationId ?? ''}
+            onChange={(event) => {
+              if (event.target.value) void selectConversation(event.target.value);
+            }}
+            className="h-7 w-full cursor-pointer appearance-none truncate rounded-md border border-transparent bg-transparent pl-2 pr-6 text-[11px] text-muted hover:border-line-soft hover:bg-panel-2/60 focus:border-accent focus:outline-hidden"
+            title="Conversation history"
+          >
+            <option value="" className="bg-bg text-fg">New conversation</option>
+            {conversations.map((conversation) => (
+              <option key={conversation.id} value={conversation.id} className="bg-bg text-fg">
+                {conversation.title || 'Untitled chat'}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={11} className="pointer-events-none absolute right-1.5 text-faint" />
+        </div>
         <button
           type="button"
           onClick={newChat}
-          className="focus-ring rounded p-1 text-faint hover:bg-panel-3 hover:text-fg"
+          className="focus-ring shrink-0 rounded p-1 text-faint hover:bg-panel-3 hover:text-fg cursor-pointer"
           title="New conversation (⌘⌥N)"
         >
           <MessageSquarePlus size={13} />
         </button>
-        <div className="flex items-center gap-1">
-          <select
-            value={selectedModel ? `${selectedModel.providerId}::${selectedModel.model}` : ''}
-            onChange={(event) => {
-              const val = event.target.value;
-              if (!val) void setSelectedModel(null);
-              else {
-                const [pid, ...rest] = val.split('::');
-                if (pid && rest.length > 0) {
-                  void setSelectedModel({ providerId: pid, model: rest.join('::') });
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div className="relative flex items-center">
+            <select
+              value={selectedModel ? `${selectedModel.providerId}::${selectedModel.model}` : ''}
+              onChange={(event) => {
+                const val = event.target.value;
+                if (!val) void setSelectedModel(null);
+                else {
+                  const [pid, ...rest] = val.split('::');
+                  if (pid && rest.length > 0) {
+                    void setSelectedModel({ providerId: pid, model: rest.join('::') });
+                  }
                 }
-              }
-            }}
-            className="h-6 max-w-[145px] rounded border border-line-soft bg-panel-2 px-1 text-[10px] font-medium text-fg focus:border-accent"
-            title="Active Model (controls Chat, Coding Agent & Planning)"
-          >
-            {models.length === 0 ? <option value="">No models</option> : null}
-            {models.map((m) => (
-              <option key={`${m.providerId}::${m.id}`} value={`${m.providerId}::${m.id}`}>
-                {shortModelName(m.id)} ({m.providerId === 'ollama' ? 'Local' : 'Cloud'})
-              </option>
-            ))}
-          </select>
+              }}
+              className="h-7 min-w-[130px] max-w-[190px] cursor-pointer appearance-none rounded-md border border-line-soft bg-panel-2 pl-2 pr-6 text-[11px] font-medium text-fg hover:border-line focus:border-accent focus:outline-hidden"
+              title="Active Model (controls Chat, Coding Agent & Planning)"
+            >
+              {models.length === 0 ? <option value="" className="bg-bg text-fg">No models</option> : null}
+              {models.map((m) => (
+                <option key={`${m.providerId}::${m.id}`} value={`${m.providerId}::${m.id}`} className="bg-bg text-fg">
+                  {shortModelName(m.id)} ({m.providerId === 'ollama' ? 'Local' : 'Cloud'})
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={11} className="pointer-events-none absolute right-1.5 text-faint" />
+          </div>
           <button
             type="button"
             onClick={() => setModelsOpen(true)}
-            className="chip !h-[22px] !px-1.5 !text-[9px] hover:border-accent hover:text-accent cursor-pointer"
+            className="chip !h-7 !px-2 !text-[10px] hover:border-accent hover:text-accent cursor-pointer"
             title="Manage Models & Providers"
           >
             Manage
