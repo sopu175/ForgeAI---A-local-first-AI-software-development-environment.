@@ -313,10 +313,36 @@ export function TrainModelTab() {
           </div>
 
           <div className="space-y-2">
+            {/* Quick model recipe selector pills */}
+            <div className="flex flex-wrap items-center gap-1.5 pb-1">
+              <span className="text-[10px] text-faint font-semibold uppercase tracking-wider mr-1">Developer Models:</span>
+              {[
+                { id: 'sopu-coder', label: 'Full-Stack Coder' },
+                { id: 'sopu-coder-fast', label: 'Fast Completion' },
+                { id: 'sopu-frontend', label: 'Frontend / UI' },
+                { id: 'sopu-animation', label: 'Motion & 3D' },
+                { id: 'sopu-backend', label: 'Backend & APIs' },
+                { id: 'sopu-debugger', label: 'Root Cause Debug' },
+              ].map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setSelectedRecipe(m.id)}
+                  className={`chip !h-5 !px-2 !text-[9.5px] cursor-pointer transition-colors ${
+                    selectedRecipe === m.id
+                      ? 'chip-accent font-semibold border-accent'
+                      : 'hover:border-accent hover:text-fg'
+                  }`}
+                >
+                  {m.label} ({m.id})
+                </button>
+              ))}
+            </div>
+
             <div className="rounded bg-panel-2 p-2 text-[11px] font-mono flex items-center justify-between gap-2 border border-line-soft">
               <div className="min-w-0 flex-1 truncate">
                 <span className="text-accent select-none">$ </span>
-                <span className="text-fg">ollama create sopu-coder -f training/recipes/Modelfile.sopu-coder</span>
+                <span className="text-fg">ollama create {selectedRecipe} -f training/recipes/Modelfile.{selectedRecipe}</span>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <button
@@ -325,8 +351,8 @@ export function TrainModelTab() {
                   title="Run in Integrated Terminal"
                   onClick={() => {
                     showBottom('terminal');
-                    requestTerminalCommand('ollama create sopu-coder -f training/recipes/Modelfile.sopu-coder');
-                    toast('info', 'Command dispatched to Terminal');
+                    requestTerminalCommand(`ollama create ${selectedRecipe} -f training/recipes/Modelfile.${selectedRecipe}`);
+                    toast('info', `Dispatched build for ${selectedRecipe} to Terminal`);
                   }}
                 >
                   <Play size={10} className="text-success" /> Run
@@ -336,7 +362,7 @@ export function TrainModelTab() {
                   className="btn btn-ghost h-6 px-1.5 text-[10px]"
                   title="Copy command"
                   onClick={() => {
-                    void navigator.clipboard.writeText('ollama create sopu-coder -f training/recipes/Modelfile.sopu-coder');
+                    void navigator.clipboard.writeText(`ollama create ${selectedRecipe} -f training/recipes/Modelfile.${selectedRecipe}`);
                     setCopiedCmd('recipe');
                     setTimeout(() => setCopiedCmd(null), 2000);
                   }}

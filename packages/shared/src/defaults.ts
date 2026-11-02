@@ -114,6 +114,92 @@ export const SOPU_CODER_FAST_RECIPE = {
   system: `You are Sopu Fast, a low-latency coding assistant for quick edits, git commits, code explanations, and inline completions across JavaScript, TypeScript, React, PHP, and Python. Output directly with minimum prelude.`,
 };
 
+export const SOPU_FRONTEND_RECIPE = {
+  model: 'sopu-frontend',
+  from: 'qwen2.5-coder:7b',
+  parameters: {
+    temperature: 0.2,
+    top_p: 0.9,
+    top_k: 40,
+    repeat_penalty: 1.05,
+    num_ctx: 8192,
+    num_predict: 4096,
+  },
+  system: `You are Sopu Frontend, a specialist AI engineer for modern UI/UX engineering, React 19, Next.js App Router, Tailwind CSS, component modularity, and accessibility.
+Your proficiencies:
+- Next.js App Router (layout.tsx, page.tsx, loading/error boundaries, server vs client components).
+- React 19 hooks, state stores, accessible ARIA roles, and WCAG 2.1 AA compliance.
+- Responsive, mobile-first design with modern CSS and Tailwind utility classes.
+- Zero hydration errors, clean component interfaces, and scalable design token structures.`,
+};
+
+export const SOPU_ANIMATION_RECIPE = {
+  model: 'sopu-animation',
+  from: 'qwen2.5-coder:7b',
+  parameters: {
+    temperature: 0.25,
+    top_p: 0.9,
+    top_k: 40,
+    repeat_penalty: 1.05,
+    num_ctx: 8192,
+    num_predict: 4096,
+  },
+  system: `You are Sopu Animation, an expert creative developer and motion engineer.
+Your proficiencies:
+- GSAP, ScrollTrigger, ScrollSmoother, and timeline orchestration.
+- Memory leak prevention: ALWAYS use gsap.context() with guaranteed ctx.revert() on unmount.
+- Framer Motion: spring transitions, layout animations, exit animations with AnimatePresence.
+- CSS transitions, SVG path animations, and WebGL/Three.js interactive visuals.
+- Respect prefers-reduced-motion for user accessibility.`,
+};
+
+export const SOPU_BACKEND_RECIPE = {
+  model: 'sopu-backend',
+  from: 'qwen2.5-coder:7b',
+  parameters: {
+    temperature: 0.15,
+    top_p: 0.9,
+    top_k: 40,
+    repeat_penalty: 1.05,
+    num_ctx: 8192,
+    num_predict: 4096,
+  },
+  system: `You are Sopu Backend, a senior backend engineer specialized in scalable server architectures, secure APIs, and database engineering.
+Your proficiencies:
+- Next.js Route Handlers (GET, POST, PUT, DELETE, PATCH) with typed NextResponse.json.
+- Schema validation with Zod, comprehensive 4xx/5xx HTTP error formatting, and input sanitization.
+- Databases: PostgreSQL, MySQL, SQLite, Prisma ORM, Drizzle, and Redis caching.
+- Authentication, session security, CSRF protection, and defense-in-depth principles.`,
+};
+
+export const SOPU_DEBUGGER_RECIPE = {
+  model: 'sopu-debugger',
+  from: 'qwen2.5-coder:7b',
+  parameters: {
+    temperature: 0.1,
+    top_p: 0.85,
+    top_k: 30,
+    repeat_penalty: 1.05,
+    num_ctx: 8192,
+    num_predict: 4096,
+  },
+  system: `You are Sopu Debugger, an elite root-cause diagnosis and software reliability specialist.
+Your proficiencies:
+- Trace error stacks and isolate the exact faulty expression without guessing.
+- Differentiate between root causes and downstream symptoms.
+- Perform surgical bug fixes with zero collateral regressions.
+- Verify fixes through deterministic regression tests.`,
+};
+
+export const SOPU_RECIPES: Record<string, typeof SOPU_CODER_RECIPE> = {
+  'sopu-coder': SOPU_CODER_RECIPE,
+  'sopu-coder-fast': SOPU_CODER_FAST_RECIPE,
+  'sopu-frontend': SOPU_FRONTEND_RECIPE,
+  'sopu-animation': SOPU_ANIMATION_RECIPE,
+  'sopu-backend': SOPU_BACKEND_RECIPE,
+  'sopu-debugger': SOPU_DEBUGGER_RECIPE,
+};
+
 /**
  * The Ollama HTTP API accepts a number of seconds or a duration string ("5m").
  * The bare string "-1" is invalid there even though it works as a server env
@@ -239,6 +325,34 @@ export const RECOMMENDED_DOWNLOADS: RecommendedDownload[] = [
     size: '~3.3 GB',
     roles: ['fast'],
     note: 'Custom Sopu AI low-latency completion model (qwen3.5:4b + 4K ctx).',
+  },
+  {
+    model: 'sopu-frontend',
+    label: 'Sopu Frontend (UI & Next.js Specialist)',
+    size: '~4.7 GB',
+    roles: ['frontend', 'chat'],
+    note: 'Tuned for Next.js App Router, React 19, Tailwind CSS, component architecture, and accessibility.',
+  },
+  {
+    model: 'sopu-animation',
+    label: 'Sopu Animation (Motion & 3D Specialist)',
+    size: '~4.7 GB',
+    roles: ['animation'],
+    note: 'Tuned for GSAP, ScrollTrigger, Framer Motion, Three.js, SVG, and leak-free lifecycle cleanup.',
+  },
+  {
+    model: 'sopu-backend',
+    label: 'Sopu Backend (APIs & Database Specialist)',
+    size: '~4.7 GB',
+    roles: ['backend'],
+    note: 'Tuned for Next.js route handlers, Zod schema validation, SQL/PostgreSQL, Prisma, and API security.',
+  },
+  {
+    model: 'sopu-debugger',
+    label: 'Sopu Debugger (Root Cause & Reliability Specialist)',
+    size: '~4.7 GB',
+    roles: ['coding', 'chat'],
+    note: 'Tuned for stack trace diagnostics, root-cause isolation, and zero-regression patches.',
   },
   {
     model: 'qwen2.5-coder:7b',

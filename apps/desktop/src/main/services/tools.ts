@@ -8,7 +8,7 @@ import type {
   UrlInspectionIssue,
   UrlInspectionResult,
 } from '@forgeai/shared';
-import { SOPU_CODER_RECIPE, SOPU_CODER_FAST_RECIPE } from '@forgeai/shared';
+import { SOPU_CODER_RECIPE, SOPU_CODER_FAST_RECIPE, SOPU_RECIPES } from '@forgeai/shared';
 import type { Database } from '../db';
 import type { ProvidersService } from './providers';
 import type { SettingsService } from './settings';
@@ -557,19 +557,15 @@ Please provide a concise, high-value Technical Diagnosis and Recommended Solutio
       }
     }
 
-    if (!seenNames.has('sopu-coder')) {
-      availableRecipes.unshift({
-        name: 'sopu-coder',
-        file: 'Modelfile.sopu-coder',
-        baseModel: SOPU_CODER_RECIPE.from,
-      });
-    }
-    if (!seenNames.has('sopu-coder-fast')) {
-      availableRecipes.push({
-        name: 'sopu-coder-fast',
-        file: 'Modelfile.sopu-coder-fast',
-        baseModel: SOPU_CODER_FAST_RECIPE.from,
-      });
+    for (const [recipeId, recipeDef] of Object.entries(SOPU_RECIPES)) {
+      if (!seenNames.has(recipeId)) {
+        availableRecipes.push({
+          name: recipeId,
+          file: `Modelfile.${recipeId}`,
+          baseModel: recipeDef.from,
+        });
+        seenNames.add(recipeId);
+      }
     }
 
     return {
@@ -641,7 +637,7 @@ Please provide a concise, high-value Technical Diagnosis and Recommended Solutio
 
       if (!modelfile) {
         // Synthesize Modelfile from recipe if missing
-        const recipe = recipeName === 'sopu-coder-fast' ? SOPU_CODER_FAST_RECIPE : SOPU_CODER_RECIPE;
+        const recipe = SOPU_RECIPES[recipeName] ?? (recipeName === 'sopu-coder-fast' ? SOPU_CODER_FAST_RECIPE : SOPU_CODER_RECIPE);
         const autoDir = path.join(trainingDir, 'recipes');
         fs.mkdirSync(autoDir, { recursive: true });
         modelfile = path.join(autoDir, `Modelfile.${recipeName}`);
