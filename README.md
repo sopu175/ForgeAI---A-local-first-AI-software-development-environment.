@@ -434,7 +434,156 @@ If you want to distribute ready-to-run models without rebuilding from source:
 
 ---
 
-## 7. Build installers
+## 8. Continuous Custom Model Training & Fine-Tuning Pipeline
+
+A common requirement for teams and developers is: **"How can my custom model continuously train and learn from real interactions across everyone using the application, and how do we distribute the newly trained models?"**
+
+### The Core Architecture
+
+In local desktop IDEs, models **cannot** perform continuous gradient backpropagation in-memory during real-time typing without exhausting GPU VRAM, crashing system memory, or causing multi-second editor freezes.
+
+Instead, Sopu AI provides an **Autonomous Data Harvesting & Continuous LoRA Fine-Tuning Pipeline**:
+
+```
+┌───────────────────────────────────────────────┐
+│           User & Agent Coding Activity        │
+│       (Chat, Agent Edits, Diffs, Fixes)       │
+└───────────────────────┬───────────────────────┘
+                        │ 1. Auto-Log to SQLite
+                        ▼
+┌───────────────────────────────────────────────┐
+│          forgeai.db (Local Storage)           │
+│       Private, zero cloud telemetry           │
+└───────────────────────┬───────────────────────┘
+                        │ 2. yarn export-data
+                        ▼
+┌───────────────────────────────────────────────┐
+│        training/train.jsonl Dataset           │
+│       Formatted instruction-tuning pairs      │
+└───────────────────────┬───────────────────────┘
+                        │ 3. yarn train:lora (4-bit QLoRA)
+                        ▼
+┌───────────────────────────────────────────────┐
+│         sopu-coder-lora.gguf Adapter          │
+│         Compact weights (20 MB – 80 MB)       │
+└───────────────────────┬───────────────────────┘
+                        │ 4. Modelfile / Ollama Push
+                        ▼
+┌───────────────────────────────────────────────┐
+│   All Users Automatically Get Retrained Model │
+│    • 1-Click pull via Ollama Hub              │
+│    • Or distributed via Git-tracked recipes   │
+└───────────────────────────────────────────────┘
+```
+
+### Step 1: Automatic Interaction Harvesting
+Every successful turn in ForgeAI is saved to the local SQLite database (`forgeai.db`):
+- User prompts and attached code context
+- Assistant responses, reasoning traces, and tool calls
+- Accepted git diffs and code corrections
+- Prompt and completion token counts and duration metrics
+
+This data is **100% private to your machine** by default—no telemetry leaves your computer.
+
+### Step 2: One-Command Dataset Export (`yarn export-data`)
+To harvest high-quality training pairs from your real-world usage, run:
+
+```bash
+yarn export-data
+```
+
+This runs [`scripts/export-training-data.mjs`](scripts/export-training-data.mjs), which:
+1. Connects to `forgeai.db`.
+2. Filters out aborted runs, errors, empty prompts, and raw tool syntax.
+3. Formats conversations into standard Hugging Face / OpenAI / ShareGPT instruction format:
+   ```json
+   {"messages": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}
+   ```
+4. Automatically splits the dataset into `training/train.jsonl` (90%) and `training/eval.jsonl` (10%).
+
+### Step 3: 4-bit LoRA Parameter-Efficient Fine-Tuning (`yarn train:lora`)
+Instead of retraining billions of base weights (which requires high-end data centers), Sopu AI fine-tunes a **Low-Rank Adaptation (LoRA)** adapter ($\Delta W$). This trains only ~0.5% of parameters while preserving the base model's general reasoning capabilities.
+
+You can run fine-tuning on consumer hardware (MacBook Pro M1/M2/M3/M4 with 16 GB RAM or a PC with an NVIDIA GPU):
+
+```bash
+# Install fine-tuning dependencies (one-time)
+pip install torch transformers peft trl bitsandbytes datasets accelerate
+
+# Run LoRA fine-tuning
+yarn train:lora
+```
+
+> [!TIP]
+> **For Apple Silicon Mac users:** You can also use Apple's native **MLX** framework for lightning-fast training directly on the unified memory GPU:
+> ```bash
+> pip install mlx-lm
+> mlx_lm.lora --model Qwen/Qwen2.5-Coder-7B-Instruct --data ./training/ --train --iters 600 --batch-size 2 --lora-layers 16
+> ```
+
+### Step 4: Link the Trained Adapter in `modelfiles/`
+Once the LoRA adapter is exported to GGUF (`training/output/sopu-coder-lora.gguf`):
+1. In [`modelfiles/Modelfile.sopu-coder`](modelfiles/Modelfile.sopu-coder), reference the new adapter:
+   ```dockerfile
+   FROM qwen2.5-coder:7b
+   ADAPTER ./sopu-coder-lora.gguf
+   PARAMETER temperature 0.2
+   PARAMETER top_p 0.95
+   PARAMETER stop "<|im_end|>"
+   ```
+2. Compile the updated model locally:
+   ```bash
+   ollama create sopu-coder -f modelfiles/Modelfile.sopu-coder
+   ```
+
+### Step 5: Distribute to Everyone Using the Application
+
+To ensure that **everyone who uses the application gets the newly trained model**:
+
+#### Method A: Ollama Hub (Recommended - Instant 1-Command Sync)
+Push your trained model to the official Ollama registry under your namespace:
+```bash
+# Tag and push your trained model
+ollama cp sopu-coder your-team/sopu-coder
+ollama push your-team/sopu-coder
+```
+When new users download ForgeAI or existing users open the app, setting:
+```bash
+FORGEAI_OLLAMA_MODEL=your-team/sopu-coder
+```
+or selecting it in **Models → Add Model** will download and run your trained model with zero compilation required!
+
+#### Method B: GitHub Releases (Lightweight GGUF Adapter)
+Because LoRA adapters are small (typically only **20 MB – 80 MB** compared to 5 GB base weights):
+1. Upload `sopu-coder-lora.gguf` as an asset to a GitHub Release.
+2. Update `scripts/setup-models.sh` to download the adapter during setup.
+3. Every teammate running `./scripts/setup-models.sh` automatically compiles the customized, trained model.
+
+#### Method C: Team Continuous Federated Training
+For teams or organizations:
+1. Team members periodically run `yarn export-data`.
+2. Anonymized `.jsonl` files are pushed to an internal repository or S3/GCS bucket.
+3. A scheduled CI workflow (or GPU runner) fine-tunes the weekly checkpoint, updates `Modelfile.sopu-coder`, and pushes the new revision to the internal Ollama server or Ollama Hub.
+
+---
+
+## 9. Windows & Cross-Platform Compatibility
+
+ForgeAI is fully cross-platform with first-class support for both macOS (Apple Silicon & Intel) and Windows 10/11 (x64 and arm64).
+
+### Key Windows Engineering Fixes
+1. **Loopback IPv4 Normalization (Fixes Windows `fetch failed`):**
+   - On Windows, Node.js / Undici resolves `localhost` to IPv6 `::1` by default. Because Ollama for Windows listens exclusively on IPv4 `127.0.0.1:11434`, standard fetch calls would fail with `ECONNREFUSED` / `fetch failed`.
+   - ForgeAI automatically normalizes `localhost` to `127.0.0.1` on `win32` and implements an automatic dual-stack fallback in `packages/ai/src/http.ts`, guaranteeing instant connectivity.
+2. **Case-Insensitive Windows Path Comparisons:**
+   - Windows file systems are case-insensitive and `fs.realpath` returns canonical uppercase drive letters (e.g. `C:\...`) while workspaces may open with lowercase (e.g. `c:\...`).
+   - ForgeAI incorporates `isWithinRoot` path normalization in `workspace.ts`, eliminating `Symlink escapes workspace` errors during agent file modifications on Windows.
+3. **Native NSIS Installer & Portable Executable:**
+   - Full support for Windows NSIS auto-upgrading installers (`ForgeAI-0.1.0-x64.exe`) and zero-install portable builds (`ForgeAI-0.1.0-x64-portable.exe`).
+
+---
+
+## 10. Build installers
 
 Installer builds use [electron-builder](https://www.electron.build/). Configuration lives in
 [`apps/desktop/electron-builder.yml`](apps/desktop/electron-builder.yml).
@@ -521,114 +670,131 @@ archive so its N-API prebuild loads at runtime.
 
 ---
 
-## 6. Quality checks
+## 11. Complete Keyboard Shortcuts & Keybindings
 
-```bash
-yarn typecheck      # strict TypeScript for main/preload and renderer
-yarn test           # Vitest (run once)
-yarn test:watch     # Vitest in watch mode
-yarn lint           # ESLint
-yarn format:check   # Prettier verification
-yarn format         # Prettier write
-yarn smoke          # build + headless launch + screenshot
-```
+ForgeAI supports standard VS Code / JetBrains / Sublime style keybindings across macOS and Windows:
 
-Run `yarn typecheck && yarn build && yarn smoke` before opening a pull request or cutting a release.
+| Action | macOS | Windows / Linux |
+| :--- | :--- | :--- |
+| **Command Palette** | `⌘⇧P` | `Ctrl+Shift+P` |
+| **Quick Open File** | `⌘P` / `⌘O` | `Ctrl+P` / `Ctrl+O` |
+| **Inline AI Edit (Diff Preview)** | `⌘K` | `Ctrl+K` |
+| **Start Coding Agent** | `⌘⇧↵` | `Ctrl+Shift+Enter` |
+| **Toggle AI Assistant Panel** | `⌘⌥B` | `Ctrl+Alt+B` |
+| **Toggle File Explorer** | `⌘⇧E` | `Ctrl+Shift+E` |
+| **Global Text Search** | `⌘⇧F` | `Ctrl+Shift+F` |
+| **Toggle Source Control (Git)** | `⌘⇧G` | `Ctrl+Shift+G` |
+| **Toggle Built-in Terminal** | `⌃\`` / `⌘J` | `Ctrl+\`` / `Ctrl+J` |
+| **Toggle Problems Panel** | `⌘⇧M` | `Ctrl+Shift+M` |
+| **Save Active File** | `⌘S` | `Ctrl+S` |
+| **Close Tab** | `⌘W` | `Ctrl+W` |
+| **New File** | `⌘N` | `Ctrl+N` |
+| **Find in Active Editor** | `⌘F` | `Ctrl+F` |
+| **Find & Replace in Editor** | `⌘⌥F` | `Ctrl+H` |
+| **Go to Line Number** | `⌃G` | `Ctrl+G` |
+| **Toggle Line Comment** | `⌘/` | `Ctrl+/` |
+| **Toggle Block Comment** | `⌥⇧A` | `Shift+Alt+A` |
+| **Format Document** | `⌥⇧F` | `Shift+Alt+F` |
+| **Open Settings & Keybindings** | `⌘,` / `⌘K ⌘S` | `Ctrl+,` / `Ctrl+K Ctrl+S` |
 
 ---
 
-## 8. Project layout
+## 12. Quality checks & Verification
+
+```bash
+yarn typecheck      # strict TypeScript for main, preload, renderer and shared packages
+yarn test           # Vitest suite (33 tests covering diff engine, tokens, and formatters)
+yarn test:watch     # Vitest in interactive watch mode
+yarn lint           # ESLint across all workspaces
+yarn format:check   # Prettier verification
+yarn format         # Prettier write / auto-format
+yarn smoke          # Headless UI launch test + automated screenshot capture
+```
+
+Run `yarn typecheck && yarn test && yarn build` before submitting pull requests or cutting a release.
+
+---
+
+## 13. Project layout
 
 ```
 sopu-agent-ai/
 ├── apps/
 │   └── desktop/
 │       ├── src/main/            Electron main process
-│       │   ├── index.ts         lifecycle, window, smoke mode, runtime auto-start
-│       │   ├── ipc.ts           typed, validated IPC router
-│       │   ├── services/        workspace, db, search, index, git, terminal, providers, Ollama runtime
-│       │   ├── agent/           agent loop, tools, prompts
-│       │   └── specs/           requirements/design/tasks pipeline
-│       ├── src/preload/         contextBridge API
-│       ├── src/renderer/        React UI (Monaco, chat, panels, dialogs)
-│       ├── build/               app icon and packaging assets
-│       ├── electron-builder.yml packaging targets
-│       └── scripts/smoke.mjs    headless smoke test
+│       │   ├── index.ts         Lifecycle, window management, auto-start
+│       │   ├── ipc.ts           Typed, validated IPC router
+│       │   ├── services/        Workspace, db, search, index, git, terminal, providers, Ollama runtime
+│       │   ├── agent/           Agent execution loop, tools, prompt orchestration
+│       │   └── specs/           Requirements/design/tasks spec pipeline
+│       ├── src/preload/         contextBridge security boundary
+│       ├── src/renderer/        React UI (Monaco editor, AI panels, diffs, dialogs)
+│       ├── build/               App icons and packaging resources
+│       ├── electron-builder.yml Cross-platform packaging targets (DMG, ZIP, NSIS EXE)
+│       └── scripts/smoke.mjs    Headless smoke test
 ├── packages/
-│   ├── shared/                  types, IPC contract, zod schemas, defaults
-│   ├── ai/                      provider clients, streaming, tool-call parsing
-│   └── core/                    indexing, retrieval, specs, rules, diffs
+│   ├── shared/                  Shared types, IPC contract, Zod schemas, default configs
+│   ├── ai/                      Provider clients, streaming controllers, tool call parsers, loopback normalizer
+│   └── core/                    Indexing, retrieval, vector search, specs, rules, unified diffs
 ├── modelfiles/                  Git-tracked Modelfile recipes (sopu-coder, sopu-coder-fast)
-├── docs/                        architecture and screenshot
+├── training/                    Exported instruction datasets for continuous model fine-tuning
+├── docs/                        Architecture specifications and benchmark reports
 ├── scripts/
-│   ├── clean.mjs                removes previous build output before packaging
-│   └── setup-models.sh          automated model pull & build script for teammates
+│   ├── clean.mjs                Removes build artifacts before fresh packaging
+│   ├── setup-models.sh          Automated model pull & build script for teams
+│   ├── export-training-data.mjs One-command dataset exporter from forgeai.db
+│   └── train-lora.py            4-bit LoRA continuous fine-tuning script
 ├── tests/                       Vitest suites for shared helpers and the diff engine
 ├── package.json                 Yarn workspaces and root scripts
 └── vitest.config.mts, eslint.config.mjs, .prettierrc.json, apps/desktop/electron.vite.config.ts
 ```
 
-### Useful scripts
+### Useful CLI Scripts
 
 | Command                     | What it does                                                 |
 | --------------------------- | ------------------------------------------------------------ |
+| `yarn export-data`          | Extracts clean training pairs from `forgeai.db` into `training/train.jsonl` |
+| `yarn train:lora`           | Runs 4-bit LoRA fine-tuning on harvested coding interactions |
 | `./scripts/setup-models.sh` | Pulls base weights and creates custom Sopu AI models         |
-| `yarn dev`                  | Run from source with HMR                                     |
-| `yarn build`                | Build main, preload and renderer                             |
+| `yarn dev`                  | Run from source with hot module reloading                    |
+| `yarn build`                | Build main, preload and renderer for production              |
 | `yarn clean`                | Delete `out/`, `dist/` and Vite caches                       |
-| `yarn start`                | Preview the production build                                 |
-| `yarn typecheck`            | Strict TypeScript check                                      |
-| `yarn test`                 | Run Vitest (33 unit tests)                                   |
+| `yarn start`                | Preview the production build in Electron                     |
+| `yarn typecheck`            | Strict TypeScript type checking across all workspaces        |
+| `yarn test`                 | Run Vitest test suite                                        |
 | `yarn smoke`                | Headless UI smoke test                                       |
-| `yarn dist:mac`             | Clean build + macOS DMG/ZIP (arm64, x64)                     |
-| `yarn dist:win`             | Clean build + Windows NSIS/portable                          |
+| `yarn dist:mac`             | Clean build + macOS DMG and ZIP (arm64, x64)                 |
+| `yarn dist:win`             | Clean build + Windows NSIS installer and portable exe        |
 
 ---
 
-## 9. Troubleshooting
+## 14. Troubleshooting & FAQ
 
-**Port 11434 is already in use.** Another Ollama instance or an app is bound to it. ForgeAI reuses a
-healthy Ollama at that address; otherwise stop the other process or point the Ollama provider at a
-different port in **Models → Providers**.
+**Windows: Agent chat shows `fetch failed` / `ECONNREFUSED ::1:11434`.**
+This occurs when Node.js attempts to resolve `localhost` via IPv6 `::1`, while Ollama for Windows listens exclusively on IPv4 `127.0.0.1`. ForgeAI handles this automatically via `safeFetch` and loopback normalization. If using an external server, ensure your provider endpoint in **Models → Providers** is set to `http://127.0.0.1:11434`.
 
-**The runtime downloaded but the server will not start.** Read
-`<data>/logs/ollama.log`. Common causes are a quarantined binary on macOS
-(`xattr -dr com.apple.quarantine <data>/runtime/ollama`) or a blocked executable path on Windows.
+**Port 11434 is already in use.** Another Ollama instance or background daemon is bound to it. ForgeAI will safely connect to a healthy Ollama instance at that address; otherwise stop the other process or change the port in **Models → Providers**.
 
-**Model download stalls or fails.** Check network/proxy access to `github.com` (runtime archive) and
-`registry.ollama.ai` (model layers). Then open **Models**, press retry, or fall back to the
-[manual setup](#offline--manual-setup).
+**The runtime downloaded but the server will not start.** Read `<data>/logs/ollama.log`. Common causes are a quarantined binary on macOS (`xattr -dr com.apple.quarantine <data>/runtime/ollama`) or an antivirus blocking executable paths on Windows.
 
-**“Set up local model” keeps appearing.** The provider endpoint may not match the running server.
-Open **Models → Providers**, test the Ollama endpoint, and ensure it is enabled.
+**Model download stalls or fails.** Check network/proxy access to `github.com` (runtime archive) and `registry.ollama.ai` (model layers). Then open **Models**, press retry, or fall back to the [manual setup](#offline--manual-setup).
 
-**The first answer is fast but later answers stall.** Something else unloaded the model (another
-Ollama client, a manual `ollama stop`, or memory pressure). ForgeAI sends `keep_alive: -1` on every
-request and its watchdog restarts a managed server, but it will not fight a server you started
-yourself. Check with `ollama ps`; the model should stay listed while ForgeAI is open.
+**“Set up local model” keeps appearing.** The provider endpoint may not match the running server. Open **Models → Providers**, test the Ollama endpoint, and ensure it is enabled.
 
-**Old models are still on disk.** ForgeAI removes the known legacy models automatically after
-startup. For a full cleanup open **Models** and press **Clean up models**; this removes unused chat
-models to free disk space while safely preserving your embedding models and active resident models.
+**The first answer is fast but later answers stall.** Something else unloaded the model (another Ollama client, a manual `ollama stop`, or memory pressure). ForgeAI sends `keep_alive: -1` on every request and its watchdog restarts a managed server, but it will not fight a server you started yourself. Check with `ollama ps`; the model should stay listed while ForgeAI is open.
 
-**The window is blank in development.** Confirm Node is 22+, delete `apps/desktop/out/`, and run
-`yarn dev` again. In headless environments use `yarn smoke` or a virtual display.
+**Old models are still on disk.** ForgeAI removes the known legacy models automatically after startup. For a full cleanup open **Models** and press **Clean up models**; this removes unused chat models to free disk space while safely preserving your embedding models and active resident models.
 
-**A packaged build cannot load `node-pty`.** Keep `asarUnpack: node_modules/node-pty/**` in the
-electron-builder config; native prebuilds must stay outside the asar archive.
+**The window is blank in development.** Confirm Node is 22+, delete `apps/desktop/out/`, and run `yarn dev` again. In headless environments use `yarn smoke` or a virtual display.
 
-**Windows installer build fails on macOS.** Build on Windows. NSIS/portable targets need the Windows
-toolchain (or Wine, which is best-effort only).
+**A packaged build cannot load `node-pty`.** Keep `asarUnpack: node_modules/node-pty/**` in the electron-builder config; native prebuilds must stay outside the asar archive.
+
+**Windows installer build fails on macOS.** Build on Windows. NSIS/portable targets need the Windows toolchain (or Wine, which is best-effort only).
 
 ---
 
-## 10. Security model
+## 15. Security model
 
-The renderer is sandboxed with `contextIsolation` and no Node access. Every privileged action goes
-through a typed IPC channel validated with Zod in the main process. File access is confined to the
-open workspace, secret paths are blocked, deletes and shell commands require approval, and model
-output can only reach the curated tool registry. API keys, when added for an optional cloud
-provider, are stored with Electron `safeStorage` in the OS keychain — never in plain text and never
-in the repository.
+The renderer is sandboxed with `contextIsolation` and no Node access. Every privileged action goes through a typed IPC channel validated with Zod in the main process. File access is confined to the open workspace, secret paths are blocked, deletes and shell commands require approval, and model output can only reach the curated tool registry. API keys, when added for an optional cloud provider, are stored with Electron `safeStorage` in the OS keychain — never in plain text and never in the repository.
 
 ForgeAI does not read or write `.env` files. Keep credentials out of the workspace and out of git.

@@ -30,3 +30,9 @@ Thumbs.db
 *.dmg
 *.zip
 *.blockmap
+*.exe
+
+# machine learning & continuous training datasets
+training/*.jsonl
+training/output/
+

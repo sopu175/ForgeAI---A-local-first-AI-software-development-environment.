@@ -26,6 +26,8 @@
     "format:check": "prettier --check .",
     "dist:mac": "yarn workspace @forgeai/desktop dist:mac",
     "dist:win": "yarn workspace @forgeai/desktop dist:win",
+    "export-data": "node scripts/export-training-data.mjs",
+    "train:lora": "python3 scripts/train-lora.py",
     "smoke": "yarn workspace @forgeai/desktop smoke"
   },
   "devDependencies": {
