@@ -8,6 +8,8 @@ import {
   DEFAULT_OLLAMA_CONTEXT,
   DEFAULT_OLLAMA_KEEP_ALIVE,
   DEFAULT_OLLAMA_MODEL,
+  SOPU_CODER_RECIPE,
+  SOPU_CODER_FAST_RECIPE,
   LEGACY_OLLAMA_MODELS,
   normalizeOllamaKeepAlive,
   type ProviderConfig,
@@ -251,7 +253,14 @@ export class OllamaRuntime {
       }
 
       // A fresh system install may need a moment before the tags endpoint is up.
-      const tags = await this.tags(config.baseUrl, signal).catch(() => []);
+      let tags = await this.tags(config.baseUrl, signal).catch(() => []);
+
+      // Automatically build/install Sopu AI custom models if missing
+      await this.ensureSopuModels(config.baseUrl, signal).catch((err) => {
+        console.warn('[forgeai] Failed to auto-build Sopu AI models:', err);
+      });
+      tags = await this.tags(config.baseUrl, signal).catch(() => []);
+
       let modelInstalled = this.hasModel(tags, this.modelName());
       if (!modelInstalled) {
         await this.pullModel(config.baseUrl, this.modelName(), signal);
@@ -523,6 +532,53 @@ export class OllamaRuntime {
     this.broadcastState();
   }
 
+  /** Automatically build and verify custom Sopu AI models from modelfile recipes */
+  private async ensureSopuModels(baseUrl: string, signal: AbortSignal): Promise<void> {
+    const tags = await this.tags(baseUrl, signal).catch(() => []);
+
+    // 1. Build sopu-coder if missing
+    if (!this.hasModel(tags, SOPU_CODER_RECIPE.model)) {
+      if (!this.hasModel(tags, SOPU_CODER_RECIPE.from)) {
+        await this.pullModel(baseUrl, SOPU_CODER_RECIPE.from, signal);
+      }
+      await this.createCustomModel(baseUrl, SOPU_CODER_RECIPE);
+    }
+
+    // 2. Build sopu-coder-fast if missing
+    if (!this.hasModel(tags, SOPU_CODER_FAST_RECIPE.model)) {
+      if (!this.hasModel(tags, SOPU_CODER_FAST_RECIPE.from)) {
+        await this.pullModel(baseUrl, SOPU_CODER_FAST_RECIPE.from, signal);
+      }
+      await this.createCustomModel(baseUrl, SOPU_CODER_FAST_RECIPE);
+    }
+  }
+
+  private async createCustomModel(
+    baseUrl: string,
+    recipe: { model: string; from: string; system: string; parameters: Record<string, unknown> },
+  ): Promise<void> {
+    this.update({
+      stage: 'starting',
+      detail: `Creating custom Sopu AI model ${recipe.model} from ${recipe.from}…`,
+    });
+    const response = await fetch(`${baseUrl}/api/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: recipe.model,
+        from: recipe.from,
+        system: recipe.system,
+        parameters: recipe.parameters,
+        stream: false,
+      }),
+      signal: AbortSignal.timeout(60_000),
+    });
+    if (!response.ok) {
+      const err = await response.text().catch(() => '');
+      throw new Error(`Failed to create model ${recipe.model}: ${response.status} ${err}`);
+    }
+  }
+
   private consumePullLine(line: string, model: string): void {
     const trimmed = line.trim();
     if (!trimmed) return;
@@ -552,19 +608,25 @@ export class OllamaRuntime {
    * and high-performance models (such as qwen2.5-coder, deepseek-r1, or nomic-embed-text).
    */
   private applyDefaultRoles(): void {
-    const defaultModel = this.modelName();
     const roles = { ...this.settings.get().modelRoles };
     let changed = false;
-    for (const role of ['chat', 'coding', 'plan', 'fast', 'review'] as const) {
+
+    const primary = 'sopu-coder';
+    const fast = 'sopu-coder-fast';
+
+    for (const role of ['chat', 'coding', 'plan', 'review'] as const) {
       const current = roles[role];
-      // Keep existing role if already assigned to a valid model
-      if (current?.model) continue;
-      roles[role] = { providerId: 'ollama', model: defaultModel };
+      if (!current?.model || current.model.includes('14b')) {
+        roles[role] = { providerId: 'ollama', model: primary };
+        changed = true;
+      }
+    }
+    if (!roles.fast?.model) {
+      roles.fast = { providerId: 'ollama', model: fast };
       changed = true;
     }
-    // Older builds could bind the 4b chat model to embeddings; qwen3.5:4b cannot
-    // produce vectors, so drop that binding unless it's a dedicated embedding model.
-    if (roles.embedding?.providerId === 'ollama' && roles.embedding.model === defaultModel && defaultModel === DEFAULT_OLLAMA_MODEL) {
+
+    if (roles.embedding?.providerId === 'ollama' && (roles.embedding.model === primary || roles.embedding.model === DEFAULT_OLLAMA_MODEL)) {
       delete roles.embedding;
       changed = true;
     }

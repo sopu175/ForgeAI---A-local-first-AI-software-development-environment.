@@ -2,6 +2,8 @@ import { safeStorage } from 'electron';
 import {
   DEFAULT_OLLAMA_BASE_URL,
   DEFAULT_OLLAMA_KEEP_ALIVE,
+  SOPU_CODER_RECIPE,
+  SOPU_CODER_FAST_RECIPE,
   PROVIDER_PRESETS,
   enrichModel,
   recommendRoles,
@@ -254,9 +256,53 @@ export class ProvidersService {
     this.pullController = controller;
     this.pulling = model;
     try {
-      for await (const progress of provider.pull(model, controller.signal)) {
-        this.broadcast('ai:pull', progress);
+      let pullTarget = model;
+      if (model === 'sopu-coder') pullTarget = SOPU_CODER_RECIPE.from;
+      else if (model === 'sopu-coder-fast') pullTarget = SOPU_CODER_FAST_RECIPE.from;
+
+      for await (const progress of provider.pull(pullTarget, controller.signal)) {
+        this.broadcast('ai:pull', { ...progress, model });
       }
+
+      // Automatically compile Sopu AI custom model after pulling base weights or custom model
+      if (providerId === 'ollama' && provider.createModel) {
+        if (pullTarget === SOPU_CODER_RECIPE.from || model === 'sopu-coder') {
+          this.broadcast('ai:pull', {
+            providerId,
+            model: 'sopu-coder',
+            status: 'Creating customized sopu-coder from Modelfile recipe…',
+            percent: 99,
+            done: false,
+          });
+          await provider.createModel(SOPU_CODER_RECIPE).catch(() => undefined);
+          this.settings.update({
+            modelRoles: {
+              ...this.settings.get().modelRoles,
+              chat: { providerId: 'ollama', model: 'sopu-coder' },
+              coding: { providerId: 'ollama', model: 'sopu-coder' },
+              plan: { providerId: 'ollama', model: 'sopu-coder' },
+              review: { providerId: 'ollama', model: 'sopu-coder' },
+            },
+          });
+        }
+        if (pullTarget === SOPU_CODER_FAST_RECIPE.from || model === 'sopu-coder-fast') {
+          this.broadcast('ai:pull', {
+            providerId,
+            model: 'sopu-coder-fast',
+            status: 'Creating customized sopu-coder-fast from Modelfile recipe…',
+            percent: 99,
+            done: false,
+          });
+          await provider.createModel(SOPU_CODER_FAST_RECIPE).catch(() => undefined);
+          this.settings.update({
+            modelRoles: {
+              ...this.settings.get().modelRoles,
+              fast: { providerId: 'ollama', model: 'sopu-coder-fast' },
+            },
+          });
+        }
+      }
+
       this.broadcast('ai:pull', {
         providerId,
         model,

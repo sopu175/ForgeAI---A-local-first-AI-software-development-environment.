@@ -360,7 +360,18 @@ The repository includes two tracked recipes in [`modelfiles/`](modelfiles/):
 - [`modelfiles/Modelfile.sopu-coder`](modelfiles/Modelfile.sopu-coder): 7B full-stack engineering model (TypeScript, React, Next.js, PHP, Python, tool-calling).
 - [`modelfiles/Modelfile.sopu-coder-fast`](modelfiles/Modelfile.sopu-coder-fast): 4B low-latency inline completion model.
 
-### 1-Click Setup for Team Members
+### Zero-Step Automated Installation (In-App)
+
+ForgeAI now **automatically builds and installs `sopu-coder` and `sopu-coder-fast` directly inside the app**:
+1. **On First Launch / Runtime Bootstrap:**
+   - ForgeAI checks if `sopu-coder` and `sopu-coder-fast` are present.
+   - If missing, it downloads the base weights (`qwen2.5-coder:7b` and `qwen3.5:4b`) and immediately compiles the custom models via the `/api/create` engine.
+2. **On Model Pull in UI:**
+   - Whenever you pull `qwen2.5-coder:7b` (or click pull `sopu-coder`), ForgeAI pulls the layers and immediately compiles `sopu-coder`.
+   - Whenever you pull `qwen3.5:4b` (or click pull `sopu-coder-fast`), ForgeAI pulls the layers and immediately compiles `sopu-coder-fast`.
+   - The role bindings (`chat`, `coding`, `plan`, `review`, and `fast`) are automatically configured to use these customized Sopu models.
+
+### 1-Click Setup for Team Members via CLI
 
 When a teammate or collaborator clones the repository, they can build all optimized models with a single script:
 

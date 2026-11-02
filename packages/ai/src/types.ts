@@ -31,6 +31,12 @@ export interface AIProvider {
   embed(request: EmbedRequest, signal: AbortSignal): Promise<EmbedResponse>;
   health(): Promise<{ ok: boolean; latencyMs: number; version?: string; error?: string; modelCount?: number }>;
   pull?(model: string, signal: AbortSignal): AsyncIterable<PullProgress>;
+  createModel?(options: {
+    model: string;
+    from: string;
+    system?: string;
+    parameters?: Record<string, unknown>;
+  }): Promise<void>;
   deleteModel?(model: string): Promise<void>;
   running?(): Promise<RunningModel[]>;
 }

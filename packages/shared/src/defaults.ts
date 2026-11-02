@@ -79,6 +79,41 @@ export const DEFAULT_OLLAMA_KEEP_ALIVE = '-1';
 /** Context window that matches the tuned runtime and keeps prefill fast on 4B. */
 export const DEFAULT_OLLAMA_CONTEXT = 8192;
 
+export const SOPU_CODER_RECIPE = {
+  model: 'sopu-coder',
+  from: 'qwen2.5-coder:7b',
+  parameters: {
+    temperature: 0.2,
+    top_p: 0.9,
+    top_k: 40,
+    repeat_penalty: 1.05,
+    num_ctx: 8192,
+    num_predict: 4096,
+  },
+  system: `You are Sopu Coder, an expert AI software engineer specialized in full-stack architecture, clean code, and production reliability.
+Your core proficiencies include:
+- JavaScript, TypeScript, React, Next.js, Node.js
+- PHP, Laravel, Yii2, WordPress (modern architecture, hooks, REST APIs, security)
+- Python (FastAPI, Django, scripting, data handling)
+- Multi-file refactoring, deterministic testing, bug localization, and automated tool calling.
+
+Always write concise, complete, idiomatic code. Follow established project idioms, preserve existing comments/docstrings, and favor type safety and defensive error handling.`,
+};
+
+export const SOPU_CODER_FAST_RECIPE = {
+  model: 'sopu-coder-fast',
+  from: 'qwen3.5:4b',
+  parameters: {
+    temperature: 0.2,
+    top_p: 0.9,
+    top_k: 40,
+    repeat_penalty: 1.05,
+    num_ctx: 4096,
+    num_predict: 2048,
+  },
+  system: `You are Sopu Fast, a low-latency coding assistant for quick edits, git commits, code explanations, and inline completions across JavaScript, TypeScript, React, PHP, and Python. Output directly with minimum prelude.`,
+};
+
 /**
  * The Ollama HTTP API accepts a number of seconds or a duration string ("5m").
  * The bare string "-1" is invalid there even though it works as a server env

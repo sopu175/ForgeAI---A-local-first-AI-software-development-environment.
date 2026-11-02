@@ -162,6 +162,27 @@ export class OllamaProvider implements AIProvider {
     }
   }
 
+  async createModel(options: {
+    model: string;
+    from: string;
+    system?: string;
+    parameters?: Record<string, unknown>;
+  }): Promise<void> {
+    const response = await fetch(this.url('/api/create'), {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify({
+        model: options.model,
+        from: options.from,
+        system: options.system,
+        parameters: options.parameters,
+        stream: false,
+      }),
+      signal: withTimeout(60_000),
+    });
+    await assertOk(response, `Ollama create model ${options.model}`);
+  }
+
   async deleteModel(model: string): Promise<void> {
     const response = await fetch(this.url('/api/delete'), {
       method: 'DELETE',
