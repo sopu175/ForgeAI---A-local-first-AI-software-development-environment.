@@ -139,6 +139,27 @@ export const PROVIDER_PRESETS: Omit<ProviderConfig, 'id' | 'hasApiKey'>[] = [
     enabled: false,
     config: { temperature: 0.2, contextLength: 8192 },
   },
+  {
+    kind: 'openai',
+    name: 'Groq (Free)',
+    baseUrl: 'https://api.groq.com/openai/v1',
+    enabled: false,
+    config: { temperature: 0.2, contextLength: 8192 },
+  },
+  {
+    kind: 'openai',
+    name: 'Google Gemini',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+    enabled: false,
+    config: { temperature: 0.2, contextLength: 8192 },
+  },
+  {
+    kind: 'openai',
+    name: 'Anthropic (via proxy)',
+    baseUrl: 'https://api.anthropic.com/v1',
+    enabled: false,
+    config: { temperature: 0.2, contextLength: 8192 },
+  },
 ];
 
 export interface RecommendedDownload {
@@ -165,17 +186,24 @@ export const LEGACY_OLLAMA_MODELS = [
 export const RECOMMENDED_DOWNLOADS: RecommendedDownload[] = [
   {
     model: DEFAULT_OLLAMA_MODEL,
-    label: 'Qwen3.5 4B',
+    label: 'Qwen3.5 4B (Lightweight Baseline)',
     size: '~3.3 GB',
     roles: ['chat', 'coding', 'plan', 'fast', 'review'],
-    note: 'Fast, lightweight resident baseline model.',
+    note: 'Ultra-fast (18+ tok/s) lightweight resident model for quick edits and completions.',
+  },
+  {
+    model: 'qwen2.5-coder:7b',
+    label: 'Qwen2.5 Coder 7B (Recommended Primary)',
+    size: '~4.7 GB',
+    roles: ['coding', 'chat', 'plan', 'review'],
+    note: 'Optimal balance of speed (13.4 tok/s), 8K context headroom, and low 4.8GB VRAM footprint.',
   },
   {
     model: 'qwen2.5-coder:14b',
     label: 'Qwen2.5 Coder 14B',
     size: '~9.0 GB',
-    roles: ['coding', 'chat', 'fast'],
-    note: 'Codex-grade code generation, accurate file refactoring, and strict tool adherence.',
+    roles: ['coding', 'chat'],
+    note: 'High-capacity model (caution on 16GB machines: consumes 9.5GB VRAM at 8K ctx).',
   },
   {
     model: 'deepseek-r1:14b',
@@ -201,30 +229,39 @@ export function recommendRoles(models: ModelInfo[]): Partial<Record<ModelRole, {
 
   // Best coder model (Codex style)
   const coderModel =
-    completion.find((m) => m.id.includes('qwen2.5-coder:14b')) ??
+    completion.find((m) => m.id.includes('sopu-coder') && !m.id.includes('fast')) ??
     completion.find((m) => m.id.includes('qwen2.5-coder:7b')) ??
+    completion.find((m) => m.id.includes('qwen2.5-coder:14b')) ??
     completion.find((m) => /coder/i.test(m.id)) ??
     completion.find((m) => m.id === DEFAULT_OLLAMA_MODEL) ??
     completion[0];
 
+  // Best fast model (completions, commit msgs, quick utils)
+  const fastModel =
+    completion.find((m) => m.id.includes('sopu-coder-fast')) ??
+    completion.find((m) => m.id.includes('qwen3.5:4b')) ??
+    coderModel;
+
   // Best reasoning/thinking model (Antigravity/o1 style)
   const reasoningModel =
-    completion.find((m) => m.id.includes('deepseek-r1:14b')) ??
+    completion.find((m) => m.id.includes('deepseek-r1')) ??
     completion.find((m) => /r1/i.test(m.id)) ??
     coderModel;
 
   if (coderModel) {
     result.coding = { providerId: coderModel.providerId, model: coderModel.id };
-    result.fast = { providerId: coderModel.providerId, model: coderModel.id };
     result.chat = { providerId: coderModel.providerId, model: coderModel.id };
+    result.plan = { providerId: coderModel.providerId, model: coderModel.id };
+    result.review = { providerId: coderModel.providerId, model: coderModel.id };
+  }
+
+  if (fastModel) {
+    result.fast = { providerId: fastModel.providerId, model: fastModel.id };
   }
 
   if (reasoningModel) {
     result.plan = { providerId: reasoningModel.providerId, model: reasoningModel.id };
     result.review = { providerId: reasoningModel.providerId, model: reasoningModel.id };
-  } else if (coderModel) {
-    result.plan = { providerId: coderModel.providerId, model: coderModel.id };
-    result.review = { providerId: coderModel.providerId, model: coderModel.id };
   }
 
   const embedding =

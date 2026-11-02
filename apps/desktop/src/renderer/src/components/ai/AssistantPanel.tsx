@@ -5,15 +5,23 @@ import {
   Brain,
   ChevronDown,
   ChevronRight,
+  Code2,
+  FileText,
+  GitBranch,
   MessageSquare,
   MessageSquarePlus,
   Paperclip,
+  Search,
+  ShieldCheck,
+  Sparkles,
   Square,
+  TestTube,
   X,
+  Zap,
 } from 'lucide-react';
 import type { AgentKind, ChatMessage } from '@forgeai/shared';
 import { useAppStore, type AgentRunState } from '../../state/app';
-import { cn, EmptyState, Spinner } from '../ui';
+import { cn, Spinner } from '../ui';
 import { Markdown } from '../Markdown';
 import { AgentRunCard } from './AgentRunCard';
 import { errorMessage, shortModelName } from '../../lib/format';
@@ -30,12 +38,37 @@ const AGENT_OPTIONS: Array<{ kind: AgentKind; label: string }> = [
 ];
 
 const AGENT_TEMPLATES: Partial<Record<AgentKind, string[]>> = {
-  coding: ['Add the feature described below and verify it', 'Fix the failing build without changing behaviour'],
-  planner: ['Plan this feature and list impacted files', 'Break this refactor into safe, ordered steps'],
-  debugging: ['Reproduce this bug and fix the root cause', 'Find why the build or test suite fails'],
-  testing: ['Add focused tests for the selected module', 'Make this test deterministic and fast'],
-  review: ['Review my uncommitted changes', 'Look for correctness and security risks in this module'],
-  docs: ['Document this module for new contributors', 'Update the README for the current setup'],
+  coding: [
+    'Add the feature described below and verify it with tests',
+    'Fix the failing build without changing behaviour',
+    'Refactor this module for readability and performance',
+    'Implement the TODO comments in the selected file',
+  ],
+  planner: [
+    'Plan this feature and list impacted files',
+    'Break this refactor into safe, ordered steps',
+    'Write a technical spec for the next sprint',
+  ],
+  debugging: [
+    'Reproduce this bug and fix the root cause',
+    'Find why the build or test suite fails',
+    'Trace the data flow and identify where values are wrong',
+  ],
+  testing: [
+    'Add focused tests for the selected module',
+    'Make this test deterministic and fast',
+    'Generate edge-case tests for every exported function',
+  ],
+  review: [
+    'Review my uncommitted changes',
+    'Look for correctness and security risks in this module',
+    'Check for performance bottlenecks and unnecessary re-renders',
+  ],
+  docs: [
+    'Document this module for new contributors',
+    'Update the README for the current setup',
+    'Generate API documentation from TypeScript types',
+  ],
   seo: [
     'Audit this site and fix the highest-impact SEO issues',
     'Add per-route titles, descriptions, canonical and Open Graph tags',
@@ -172,12 +205,17 @@ export function AssistantPanel() {
 
   const chatSuggestions = useMemo(() => {
     if (!project) {
-      return ['Explain how this codebase is structured', 'Write a README for this project'];
+      return [
+        'Explain how this codebase is structured and where to start',
+        'What tech stack is used here? Summarize dependencies.',
+        'Write a professional README for this project',
+      ];
     }
     return [
-      'Summarize the architecture of this project and the main entry points.',
+      'Summarize the architecture and list the main entry points',
       'Where is error handling inconsistent? Point to exact files.',
-      'Write a test plan for the next feature I describe.',
+      'Explain the data flow from the API layer to the UI',
+      'What tests are missing? Suggest a test plan.',
     ];
   }, [project]);
 
@@ -245,33 +283,16 @@ export function AssistantPanel() {
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
         {empty ? (
-          <div className="pt-2">
-            <EmptyState
-              icon={isAgent ? <Bot size={24} /> : <Brain size={24} />}
-              title={isAgent ? 'Give the agent a goal' : 'Ask about your code'}
-              description={
-                isAgent
-                  ? project
-                    ? 'The agent plans, reads code, asks your permission before commands and writes, then verifies the result. Its run appears right here in the conversation.'
-                    : 'Open a project folder so an agent can read code, propose diffs and verify changes.'
-                  : project
-                    ? 'Answers are grounded in your workspace: project rules, attached files and semantic retrieval over the index.'
-                    : 'Open a project to give the chat full context. You can still ask general programming questions.'
-              }
-            />
-            <div className="mx-auto mt-1 grid max-w-[380px] gap-1.5">
-              {(isAgent ? (AGENT_TEMPLATES[agentMode] ?? []) : chatSuggestions).map((suggestion) => (
-                <button
-                  key={suggestion}
-                  type="button"
-                  onClick={() => (isAgent ? setInput(suggestion) : void sendChat(suggestion))}
-                  className="focus-ring rounded-md border border-line-soft bg-panel-2 px-2.5 py-2 text-left text-[10.5px] leading-snug text-muted hover:border-line hover:text-fg"
-                >
-                  {suggestion}
-                </button>
-              ))}
-            </div>
-          </div>
+          <WelcomeScreen
+            isAgent={isAgent}
+            agentMode={agentMode}
+            project={project}
+            selectedModel={selectedModel}
+            chatSuggestions={chatSuggestions}
+            agentTemplates={AGENT_TEMPLATES}
+            onSendChat={(text) => void sendChat(text)}
+            onSetInput={setInput}
+          />
         ) : (
           <div className="flex flex-col gap-3">{timeline}</div>
         )}
@@ -557,6 +578,181 @@ function MessageBubble({
           })}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Welcome / empty-state screen
+// ---------------------------------------------------------------------------
+
+const QUICK_ACTIONS = [
+  {
+    icon: <Search size={14} />,
+    label: 'Explore codebase',
+    tip: 'Summarize the architecture and main entry points',
+    mode: 'chat' as const,
+  },
+  {
+    icon: <Code2 size={14} />,
+    label: 'Add a feature',
+    tip: 'Add the feature described below and verify it with tests',
+    mode: 'agent' as const,
+  },
+  {
+    icon: <ShieldCheck size={14} />,
+    label: 'Fix failing tests',
+    tip: 'Find why the build or test suite fails and fix the root cause',
+    mode: 'agent' as const,
+  },
+  {
+    icon: <GitBranch size={14} />,
+    label: 'Review changes',
+    tip: 'Review my uncommitted changes for correctness and security risks',
+    mode: 'agent' as const,
+  },
+  {
+    icon: <FileText size={14} />,
+    label: 'Generate docs',
+    tip: 'Document this module for new contributors',
+    mode: 'agent' as const,
+  },
+  {
+    icon: <Zap size={14} />,
+    label: 'Optimize code',
+    tip: 'Check for performance bottlenecks and unnecessary re-renders',
+    mode: 'agent' as const,
+  },
+  {
+    icon: <TestTube size={14} />,
+    label: 'Write tests',
+    tip: 'Add focused tests for every exported function',
+    mode: 'agent' as const,
+  },
+  {
+    icon: <Sparkles size={14} />,
+    label: 'Plan feature',
+    tip: 'Break this feature into safe, ordered implementation steps',
+    mode: 'agent' as const,
+  },
+];
+
+function WelcomeScreen({
+  isAgent,
+  agentMode,
+  project,
+  selectedModel,
+  chatSuggestions,
+  agentTemplates,
+  onSendChat,
+  onSetInput,
+}: {
+  isAgent: boolean;
+  agentMode: AgentKind;
+  project: { name?: string } | null;
+  selectedModel: { model: string; providerId: string } | null;
+  chatSuggestions: string[];
+  agentTemplates: Partial<Record<AgentKind, string[]>>;
+  onSendChat: (text: string) => void;
+  onSetInput: (text: string) => void;
+}) {
+  const modelLabel = selectedModel?.model
+    ? (selectedModel.model.split(':')[0]?.split('/')?.pop() ?? selectedModel.model)
+    : null;
+
+  return (
+    <div className="flex flex-col items-center gap-4 px-3 pb-4 pt-6">
+      {/* Hero */}
+      <div className="flex flex-col items-center gap-1.5 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+          <Bot size={26} />
+        </div>
+        <h2 className="text-[14px] font-semibold tracking-tight text-fg">
+          {isAgent ? 'ForgeAI Agent' : 'ForgeAI Chat'}
+        </h2>
+        <p className="max-w-[300px] text-[10.5px] leading-relaxed text-faint">
+          {isAgent
+            ? project
+              ? 'Give the agent a goal — it plans, reads code, proposes diffs and verifies the result.'
+              : 'Open a project folder so the agent can read files, propose diffs and run commands.'
+            : project
+              ? 'Ask anything about your code. Answers are grounded in your workspace and codebase index.'
+              : 'Open a project for full codebase context, or ask any coding question right now.'}
+        </p>
+        {modelLabel ? (
+          <span className="mt-0.5 flex items-center gap-1 rounded-full border border-accent/30 bg-accent/8 px-2 py-0.5 text-[9.5px] font-medium text-accent">
+            <Zap size={9} />
+            {modelLabel}
+          </span>
+        ) : null}
+      </div>
+
+      {/* Suggestions / agent templates */}
+      {isAgent ? (
+        <div className="w-full max-w-[380px]">
+          <p className="mb-1.5 text-[9.5px] font-medium uppercase tracking-wider text-faint">Quick starts</p>
+          <div className="grid gap-1.5">
+            {(agentTemplates[agentMode] ?? []).map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() => onSetInput(suggestion)}
+                className="focus-ring rounded-md border border-line-soft bg-panel-2 px-3 py-2 text-left text-[10.5px] leading-snug text-muted hover:border-accent/40 hover:bg-panel-3 hover:text-fg"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="w-full max-w-[380px]">
+          <p className="mb-1.5 text-[9.5px] font-medium uppercase tracking-wider text-faint">Suggestions</p>
+          <div className="grid gap-1.5">
+            {chatSuggestions.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() => onSendChat(suggestion)}
+                className="focus-ring rounded-md border border-line-soft bg-panel-2 px-3 py-2 text-left text-[10.5px] leading-snug text-muted hover:border-accent/40 hover:bg-panel-3 hover:text-fg"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quick-action grid */}
+      <div className="w-full max-w-[380px]">
+        <p className="mb-1.5 text-[9.5px] font-medium uppercase tracking-wider text-faint">Common tasks</p>
+        <div className="grid grid-cols-2 gap-1.5">
+          {QUICK_ACTIONS.map((action) => (
+            <button
+              key={action.label}
+              type="button"
+              onClick={() =>
+                action.mode === 'chat' ? onSendChat(action.tip) : onSetInput(action.tip)
+              }
+              className="focus-ring flex items-center gap-2 rounded-md border border-line-soft bg-panel-2 px-2.5 py-2 text-left text-[10px] text-muted hover:border-accent/40 hover:bg-panel-3 hover:text-fg"
+            >
+              <span className="shrink-0 text-accent/70">{action.icon}</span>
+              <span className="truncate font-medium">{action.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tips */}
+      <div className="w-full max-w-[380px] rounded-md border border-line-soft bg-panel-2 px-3 py-2.5">
+        <p className="mb-1.5 text-[9.5px] font-semibold uppercase tracking-wider text-faint">Tips</p>
+        <ul className="flex flex-col gap-1 text-[9.5px] leading-relaxed text-faint">
+          <li><span className="text-muted">⌘⌥N</span> — new conversation</li>
+          <li><span className="text-muted">Shift+Enter</span> — multi-line input</li>
+          <li><span className="text-muted">📎 Attach</span> — pin any file to the prompt</li>
+          <li><span className="text-muted">Agent mode</span> — edits files, runs tests, verifies output</li>
+          <li><span className="text-muted">Cloud models</span> — add OpenRouter / Groq / Gemini in Settings → Models</li>
+        </ul>
+      </div>
     </div>
   );
 }
