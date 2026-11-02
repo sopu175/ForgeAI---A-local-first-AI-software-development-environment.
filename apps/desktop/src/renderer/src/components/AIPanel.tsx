@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { FileDiff, MessageSquare, PanelRightClose, Paperclip } from 'lucide-react';
 import type { AiTab } from '../state/app';
 import { useAppStore } from '../state/app';
@@ -21,6 +22,37 @@ export function AIPanel() {
   const agentRun = useAppStore((state) => state.agentRun);
   const contextFiles = useAppStore((state) => state.contextFiles);
 
+  const [panelWidth, setPanelWidth] = useState(() => {
+    try {
+      const saved = localStorage.getItem('forgeai:ai-panel-width');
+      const parsed = saved ? parseInt(saved, 10) : 420;
+      return Number.isFinite(parsed) && parsed >= 320 && parsed <= 900 ? parsed : 420;
+    } catch {
+      return 420;
+    }
+  });
+  const [isResizing, setIsResizing] = useState(false);
+
+  useEffect(() => {
+    if (!isResizing) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = Math.max(320, Math.min(900, window.innerWidth - e.clientX));
+      setPanelWidth(newWidth);
+    };
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      try {
+        localStorage.setItem('forgeai:ai-panel-width', String(panelWidth));
+      } catch {}
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, panelWidth]);
+
   if (!aiOpen) return null;
 
   // Chat and agent runs share the Assistant panel; "agent" stays a valid tab id
@@ -29,7 +61,26 @@ export function AIPanel() {
   const agentRunning = agentRun?.status === 'running';
 
   return (
-    <aside className="ai-panel app-no-drag" aria-label="AI assistant">
+    <aside
+      className="ai-panel relative app-no-drag"
+      style={{ width: panelWidth, flex: `0 0 ${panelWidth}px` }}
+      aria-label="AI assistant"
+    >
+      {/* Left resize handle */}
+      <div
+        onMouseDown={(e) => {
+          e.preventDefault();
+          setIsResizing(true);
+        }}
+        onDoubleClick={() => {
+          setPanelWidth(420);
+          try {
+            localStorage.setItem('forgeai:ai-panel-width', '420');
+          } catch {}
+        }}
+        className="absolute inset-y-0 -left-1 w-2 cursor-col-resize hover:bg-accent/40 active:bg-accent transition-colors z-20"
+        title="Drag to resize AI panel (double-click to reset)"
+      />
       <div className="flex h-[38px] shrink-0 items-center gap-0.5 border-b border-line-soft px-1.5">
         {TABS.map((tab) => {
           const active = tab.id === 'chat' ? assistantActive : aiTab === tab.id;

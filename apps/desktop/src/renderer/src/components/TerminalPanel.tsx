@@ -42,7 +42,7 @@ function terminalTheme(light: boolean) {
  * xterm is a sizeable dependency. This module is only imported when the
  * terminal is used, so it never delays the initial shell paint.
  */
-export function TerminalPanel() {
+export function TerminalPanel({ active = true }: { active?: boolean }) {
   const project = useAppStore((state) => state.project);
   const settings = useAppStore((state) => state.settings);
   const hostRef = useRef<HTMLDivElement>(null);
@@ -71,16 +71,30 @@ export function TerminalPanel() {
     const fit = new FitAddon();
     term.loadAddon(fit);
     term.open(host);
-    try {
-      fit.fit();
-    } catch {
-      // Hidden panels have no measurable size yet.
-    }
     termRef.current = term;
     fitRef.current = fit;
     term.writeln('\x1b[38;5;244mForgeAI terminal — local shell\x1b[0m');
 
     let disposed = false;
+    const doFit = () => {
+      if (disposed) return;
+      const hostEl = hostRef.current;
+      if (!hostEl) return;
+      const { width, height } = hostEl.getBoundingClientRect();
+      if (width <= 0 || height <= 0) return;
+      try {
+        fit.fit();
+        if (idRef.current && term.cols > 0 && term.rows > 0) {
+          void window.forge.terminal.resize(idRef.current, term.cols, term.rows).catch(() => undefined);
+        }
+      } catch {
+        // Hidden panels have no measurable size yet.
+      }
+    };
+
+    requestAnimationFrame(doFit);
+    const initTimer = window.setTimeout(doFit, 150);
+
     const pending: string[] = [];
     // A login shell prints its prompt only after the rc files have run. Anything
     // typed before that is swallowed, so queued commands wait for the output to
@@ -136,7 +150,7 @@ export function TerminalPanel() {
     });
 
     void window.forge.terminal
-      .create({ cols: term.cols, rows: term.rows })
+      .create({ cols: Math.max(term.cols, 80), rows: Math.max(term.rows, 24) })
       .then(({ id, shell: shellName }) => {
         if (disposed) {
           void window.forge.terminal.dispose(id).catch(() => undefined);
@@ -144,6 +158,8 @@ export function TerminalPanel() {
         }
         idRef.current = id;
         setShell(shellName);
+        requestAnimationFrame(doFit);
+        window.setTimeout(doFit, 150);
         if (settle !== undefined) window.clearTimeout(settle);
         settle = window.setTimeout(makeReady, 1500);
       })
@@ -152,21 +168,24 @@ export function TerminalPanel() {
         makeReady();
       });
 
-    const observer = new ResizeObserver(() => {
-      if (!hostRef.current || hostRef.current.offsetParent === null) return;
-      try {
-        fit.fit();
-      } catch {
-        return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+          requestAnimationFrame(doFit);
+        }
       }
-      if (idRef.current) void window.forge.terminal.resize(idRef.current, term.cols, term.rows).catch(() => undefined);
     });
     observer.observe(host);
 
+    const onWinResize = () => requestAnimationFrame(doFit);
+    window.addEventListener('resize', onWinResize);
+
     return () => {
       disposed = true;
+      window.clearTimeout(initTimer);
       if (settle !== undefined) window.clearTimeout(settle);
       observer.disconnect();
+      window.removeEventListener('resize', onWinResize);
       offData();
       offExit();
       offCommands();
@@ -181,6 +200,26 @@ export function TerminalPanel() {
     // Re-create the shell when the folder or explicit "new terminal" changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id, session]);
+
+  useEffect(() => {
+    if (active && termRef.current && fitRef.current && hostRef.current) {
+      const host = hostRef.current;
+      const fit = fitRef.current;
+      const term = termRef.current;
+      const { width, height } = host.getBoundingClientRect();
+      if (width > 0 && height > 0) {
+        try {
+          fit.fit();
+          if (idRef.current && term.cols > 0 && term.rows > 0) {
+            void window.forge.terminal.resize(idRef.current, term.cols, term.rows).catch(() => undefined);
+          }
+        } catch {
+          // ignore
+        }
+      }
+      term.focus();
+    }
+  }, [active]);
 
   useEffect(() => {
     const term = termRef.current;

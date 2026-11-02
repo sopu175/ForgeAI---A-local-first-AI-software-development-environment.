@@ -161,12 +161,20 @@ button:disabled {
 }
 
 input,
-textarea,
-select {
+textarea {
   background: var(--panel-2);
   border: 1px solid var(--line);
   border-radius: 2px;
   padding: 6px 8px;
+  outline: none;
+}
+
+select {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 2px 8px;
+  line-height: normal;
   outline: none;
 }
 

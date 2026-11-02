@@ -268,7 +268,7 @@ export function AssistantPanel() {
             onChange={(event) => {
               if (event.target.value) void selectConversation(event.target.value);
             }}
-            className="h-7 w-full cursor-pointer appearance-none truncate rounded-md border border-transparent bg-transparent pl-2 pr-6 text-[11px] text-muted hover:border-line-soft hover:bg-panel-2/60 focus:border-accent focus:outline-hidden"
+            className="h-7 w-full cursor-pointer appearance-none truncate rounded-md border border-transparent bg-transparent pl-2 pr-6 py-0 text-[11px] text-muted hover:border-line-soft hover:bg-panel-2/60 focus:border-accent focus:outline-hidden leading-tight"
             title="Conversation history"
           >
             <option value="" className="bg-bg text-fg">
@@ -304,7 +304,7 @@ export function AssistantPanel() {
                   }
                 }
               }}
-              className="h-7 min-w-[130px] max-w-[190px] cursor-pointer appearance-none rounded-md border border-line-soft bg-panel-2 pl-2 pr-6 text-[11px] font-medium text-fg hover:border-line focus:border-accent focus:outline-hidden"
+              className="h-7 min-w-[110px] max-w-[155px] cursor-pointer appearance-none truncate rounded-md border border-line-soft bg-panel-2 pl-2 pr-6 py-0 text-[11px] font-medium text-fg hover:border-line focus:border-accent focus:outline-hidden leading-tight"
               title="Active Model (controls Chat, Coding Agent & Planning)"
             >
               {models.length === 0 ? (

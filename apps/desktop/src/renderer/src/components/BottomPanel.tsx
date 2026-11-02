@@ -39,17 +39,62 @@ export function BottomPanel() {
   // Mount the terminal on first use, then keep it alive (hidden) so switching
   // tabs does not destroy the shell session or its scrollback.
   const [terminalMounted, setTerminalMounted] = useState(false);
+  const [panelHeight, setPanelHeight] = useState(() => {
+    try {
+      const saved = localStorage.getItem('forgeai:bottom-panel-height');
+      const parsed = saved ? parseInt(saved, 10) : 260;
+      return Number.isFinite(parsed) && parsed >= 120 && parsed <= 800 ? parsed : 260;
+    } catch {
+      return 260;
+    }
+  });
+  const [isResizing, setIsResizing] = useState(false);
 
   useEffect(() => {
     if (tab === 'terminal') setTerminalMounted(true);
   }, [tab]);
+
+  useEffect(() => {
+    if (!isResizing) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      const newHeight = Math.max(120, Math.min(window.innerHeight - 150, window.innerHeight - e.clientY - 24));
+      setPanelHeight(newHeight);
+    };
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      try {
+        localStorage.setItem('forgeai:bottom-panel-height', String(panelHeight));
+      } catch {}
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, panelHeight]);
 
   if (!open) return null;
   const errorCount = problems.filter((problem) => problem.severity === 'error').length;
   const warningCount = problems.filter((problem) => problem.severity === 'warning').length;
 
   return (
-    <section className="bottom-panel app-no-drag" style={{ height: 264 }} aria-label="Panel">
+    <section className="bottom-panel relative app-no-drag" style={{ height: panelHeight }} aria-label="Panel">
+      {/* Top resize handle */}
+      <div
+        onMouseDown={(e) => {
+          e.preventDefault();
+          setIsResizing(true);
+        }}
+        onDoubleClick={() => {
+          setPanelHeight(260);
+          try {
+            localStorage.setItem('forgeai:bottom-panel-height', '260');
+          } catch {}
+        }}
+        className="absolute inset-x-0 -top-1 h-2 cursor-row-resize hover:bg-accent/40 active:bg-accent transition-colors z-20"
+        title="Drag to resize panel (double-click to reset)"
+      />
       <div className="flex h-8 flex-none items-center gap-0.5 border-b border-line-soft px-2">
         {TABS.map((entry) => (
           <button
@@ -97,7 +142,7 @@ export function BottomPanel() {
               <div className="flex flex-1 items-center justify-center text-[11.5px] text-faint">Starting terminal…</div>
             }
           >
-            <TerminalPanel />
+            <TerminalPanel active={tab === 'terminal'} />
           </Suspense>
         </div>
       ) : null}
