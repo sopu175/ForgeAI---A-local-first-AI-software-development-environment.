@@ -1,0 +1,41 @@
+{
+  "name": "forgeai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ForgeAI — a local-first AI software development environment",
+  "license": "MIT",
+  "author": "ForgeAI",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "yarn workspace @forgeai/desktop dev",
+    "postinstall": "node scripts/fix-native-bins.mjs",
+    "build": "yarn workspace @forgeai/desktop build",
+    "clean": "node scripts/clean.mjs",
+    "start": "yarn workspace @forgeai/desktop start",
+    "typecheck": "yarn workspace @forgeai/desktop typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "dist:mac": "yarn workspace @forgeai/desktop dist:mac",
+    "dist:win": "yarn workspace @forgeai/desktop dist:win",
+    "smoke": "yarn workspace @forgeai/desktop smoke"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@types/node": "^24.0.0",
+    "eslint": "^9.39.0",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.0.5"
+  }
+}

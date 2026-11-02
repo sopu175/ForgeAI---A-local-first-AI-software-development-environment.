@@ -1,0 +1,70 @@
+appId: dev.forgeai.desktop
+productName: ForgeAI
+copyright: Copyright © 2026 ForgeAI
+
+directories:
+  output: dist
+  buildResources: build
+
+files:
+  - out/**/*
+  - package.json
+  - '!**/*.map'
+  - '!**/*.ts'
+
+asarUnpack:
+  - node_modules/node-pty/**
+
+# node-pty ships N-API prebuilds for macOS and Windows; no rebuild is required.
+npmRebuild: false
+
+mac:
+  category: public.app-category.developer-tools
+  icon: build/icon.png
+  artifactName: ${productName}-${version}-${arch}.${ext}
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+    - target: zip
+      arch:
+        - arm64
+        - x64
+  darkModeSupport: true
+  gatekeeperAssess: false
+
+dmg:
+  title: ${productName} ${version}
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+win:
+  icon: build/icon.png
+  target:
+    - target: nsis
+      arch:
+        - x64
+        - arm64
+    - target: portable
+      arch:
+        - x64
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: ForgeAI
+  uninstallDisplayName: ForgeAI ${version}
+  # Installing a newer build replaces the previous installation in place.
+  # User data in %APPDATA%\ForgeAI is intentionally preserved.
+  deleteAppDataOnUninstall: false
+  differentialPackage: true
+  allowElevation: true
+
+portable:
+  artifactName: ${productName}-${version}-portable.${ext}
+
+publish: null

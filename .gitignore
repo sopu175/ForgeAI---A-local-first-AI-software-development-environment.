@@ -1,0 +1,32 @@
+# dependencies
+node_modules/
+.yarn/cache/
+.yarn/unplugged/
+
+# build output
+out/
+dist/
+apps/desktop/dist/
+apps/desktop/out/
+*.tsbuildinfo
+
+# runtime artifacts
+apps/desktop/smoke.png
+vibe_images/
+*.log
+
+# environment / local secrets — never commit
+.env
+.env.*
+!.env.example
+
+# editor and OS noise
+.DS_Store
+**/.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+Thumbs.db
+*.dmg
+*.zip
+*.blockmap

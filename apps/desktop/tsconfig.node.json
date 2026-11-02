@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "types": ["node", "electron-vite/node"],
+    "baseUrl": ".",
+    "paths": {
+      "@forgeai/shared": ["../../packages/shared/src/index.ts"],
+      "@forgeai/ai": ["../../packages/ai/src/index.ts"],
+      "@forgeai/core": ["../../packages/core/src/index.ts"],
+      "@main/*": ["src/main/*"]
+    }
+  },
+  "include": [
+    "electron.vite.config.ts",
+    "src/main/**/*.ts",
+    "src/preload/**/*.ts",
+    "../../packages/shared/src/**/*.ts",
+    "../../packages/ai/src/**/*.ts",
+    "../../packages/core/src/**/*.ts"
+  ]
+}

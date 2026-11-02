@@ -1,0 +1,14 @@
+{
+  "name": "@forgeai/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@forgeai/shared": "0.1.0",
+    "diff": "^8.0.2",
+    "fast-glob": "^3.3.3",
+    "ignore": "^7.0.5"
+  }
+}

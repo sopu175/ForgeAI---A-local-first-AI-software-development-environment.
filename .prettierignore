@@ -1,0 +1,9 @@
+node_modules
+out
+dist
+apps/desktop/build/icon.png
+apps/desktop/smoke.png
+docs/screenshot.png
+vibe_images
+yarn.lock
+*.min.js
