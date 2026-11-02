@@ -55,6 +55,73 @@ export function joinUrl(base: string, path: string): string {
   return `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
 }
 
+/**
+ * Normalizes loopback URLs for the host operating system.
+ * On Windows, local daemons (Ollama, LM Studio, etc.) bind exclusively to IPv4 127.0.0.1,
+ * whereas Node.js undici resolves 'localhost' to IPv6 ::1 first.
+ * When ::1 is not listening, Windows TCP rejects the connection with ECONNREFUSED ("fetch failed").
+ * Converting 'localhost' to '127.0.0.1' on Windows guarantees reliable IPv4 loopback.
+ */
+export function normalizeLoopbackUrl(url: string): string {
+  if (typeof process !== 'undefined' && process.platform === 'win32') {
+    if (url.includes('://localhost:')) {
+      return url.replace('://localhost:', '://127.0.0.1:');
+    }
+    if (url.includes('://localhost/')) {
+      return url.replace('://localhost/', '://127.0.0.1/');
+    }
+  }
+  return url;
+}
+
+/**
+ * Resilient fetch wrapper that handles Windows IPv4/IPv6 localhost mismatches
+ * and enriches opaque "fetch failed" errors with the underlying connection cause.
+ */
+export async function safeFetch(url: string, init?: RequestInit): Promise<Response> {
+  const primaryUrl = normalizeLoopbackUrl(url);
+  try {
+    return await fetch(primaryUrl, init);
+  } catch (error) {
+    const isNetworkError =
+      error instanceof TypeError ||
+      (error instanceof Error &&
+        (error.message.includes('fetch failed') ||
+          error.message.includes('failed to fetch') ||
+          error.name === 'ConnectTimeoutError'));
+
+    if (isNetworkError) {
+      // Loopback fallback: if primary was 127.0.0.1, try localhost; if localhost, try 127.0.0.1
+      let fallbackUrl: string | null = null;
+      if (primaryUrl.includes('://localhost:')) {
+        fallbackUrl = primaryUrl.replace('://localhost:', '://127.0.0.1:');
+      } else if (primaryUrl.includes('://127.0.0.1:')) {
+        fallbackUrl = primaryUrl.replace('://127.0.0.1:', '://localhost:');
+      }
+
+      if (fallbackUrl && fallbackUrl !== primaryUrl) {
+        try {
+          return await fetch(fallbackUrl, init);
+        } catch {
+          // Fall through to detailed error
+        }
+      }
+    }
+
+    // Enhance generic "fetch failed" with the underlying cause if available
+    if (error instanceof Error && error.message.includes('fetch failed')) {
+      const cause = (error as { cause?: unknown }).cause;
+      if (cause instanceof Error) {
+        throw new Error(`fetch failed (${cause.message})`, { cause });
+      }
+      if (cause && typeof cause === 'object' && 'code' in cause) {
+        throw new Error(`fetch failed (${(cause as { code: string }).code})`, { cause });
+      }
+    }
+    throw error;
+  }
+}
+
 export function headersWithAuth(apiKey?: string, extra?: Record<string, string>): Record<string, string> {
   const headers: Record<string, string> = { 'content-type': 'application/json', accept: 'application/json', ...extra };
   if (apiKey) headers.authorization = `Bearer ${apiKey}`;

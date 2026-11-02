@@ -11,7 +11,16 @@ import {
   type RunningModel,
 } from '@forgeai/shared';
 import { makeToolCallId, parseArguments } from './http';
-import { iterateLines, assertOk, withTimeout, createActivityController, headersWithAuth, joinUrl } from './http';
+import {
+  iterateLines,
+  assertOk,
+  withTimeout,
+  createActivityController,
+  headersWithAuth,
+  joinUrl,
+  safeFetch,
+  normalizeLoopbackUrl,
+} from './http';
 import { ProviderError, type AIProvider, type OllamaOptions } from './types';
 import { toToolSchema } from './types';
 
@@ -62,19 +71,19 @@ export class OllamaProvider implements AIProvider {
   }
 
   private url(path: string): string {
-    return joinUrl(this.baseUrl, path);
+    return normalizeLoopbackUrl(joinUrl(this.baseUrl, path));
   }
 
   async health(): Promise<{ ok: boolean; latencyMs: number; version?: string; error?: string; modelCount?: number }> {
     const started = Date.now();
     try {
-      const response = await fetch(this.url('/api/version'), {
+      const response = await safeFetch(this.url('/api/version'), {
         headers: this.headers,
         signal: withTimeout(3000),
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const version = ((await response.json()) as { version?: string }).version;
-      const tags = await fetch(this.url('/api/tags'), { headers: this.headers, signal: withTimeout(3000) });
+      const tags = await safeFetch(this.url('/api/tags'), { headers: this.headers, signal: withTimeout(3000) });
       const data = tags.ok ? ((await tags.json()) as { models?: unknown[] }) : undefined;
       return { ok: true, latencyMs: Date.now() - started, version, modelCount: data?.models?.length };
     } catch (error) {
@@ -87,7 +96,7 @@ export class OllamaProvider implements AIProvider {
   }
 
   async listModels(signal?: AbortSignal): Promise<ModelInfo[]> {
-    const response = await fetch(this.url('/api/tags'), {
+    const response = await safeFetch(this.url('/api/tags'), {
       headers: this.headers,
       signal: withTimeout(15_000, signal),
     });
@@ -112,7 +121,7 @@ export class OllamaProvider implements AIProvider {
   }
 
   async running(): Promise<RunningModel[]> {
-    const response = await fetch(this.url('/api/ps'), {
+    const response = await safeFetch(this.url('/api/ps'), {
       headers: this.headers,
       signal: withTimeout(5000),
     });
@@ -130,7 +139,7 @@ export class OllamaProvider implements AIProvider {
   }
 
   async *pull(model: string, signal: AbortSignal): AsyncIterable<PullProgress> {
-    const response = await fetch(this.url('/api/pull'), {
+    const response = await safeFetch(this.url('/api/pull'), {
       method: 'POST',
       headers: this.headers,
       body: JSON.stringify({ model, stream: true }),
@@ -168,7 +177,7 @@ export class OllamaProvider implements AIProvider {
     system?: string;
     parameters?: Record<string, unknown>;
   }): Promise<void> {
-    const response = await fetch(this.url('/api/create'), {
+    const response = await safeFetch(this.url('/api/create'), {
       method: 'POST',
       headers: this.headers,
       body: JSON.stringify({
@@ -184,7 +193,7 @@ export class OllamaProvider implements AIProvider {
   }
 
   async deleteModel(model: string): Promise<void> {
-    const response = await fetch(this.url('/api/delete'), {
+    const response = await safeFetch(this.url('/api/delete'), {
       method: 'DELETE',
       headers: this.headers,
       body: JSON.stringify({ model }),
@@ -237,7 +246,7 @@ export class OllamaProvider implements AIProvider {
 
     const activity = createActivityController(this.timeoutMs, 180_000, signal);
     try {
-      const response = await fetch(this.url('/api/chat'), {
+      const response = await safeFetch(this.url('/api/chat'), {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify(body),
@@ -295,7 +304,7 @@ export class OllamaProvider implements AIProvider {
 }
 
   async embed(request: EmbedRequest, signal: AbortSignal): Promise<EmbedResponse> {
-    const response = await fetch(this.url('/api/embed'), {
+    const response = await safeFetch(this.url('/api/embed'), {
       method: 'POST',
       headers: this.headers,
       body: JSON.stringify({
@@ -322,7 +331,7 @@ export class OllamaProvider implements AIProvider {
   private async embedLegacy(request: EmbedRequest, signal: AbortSignal): Promise<EmbedResponse> {
     const vectors: number[][] = [];
     for (const input of request.inputs) {
-      const response = await fetch(this.url('/api/embeddings'), {
+      const response = await safeFetch(this.url('/api/embeddings'), {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify({ model: request.model, prompt: input }),

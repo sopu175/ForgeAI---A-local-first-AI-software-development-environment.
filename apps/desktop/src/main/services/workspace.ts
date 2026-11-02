@@ -194,13 +194,22 @@ export class WorkspaceService {
     }
   }
 
+  private isWithinRoot(candidate: string, root: string): boolean {
+    if (process.platform === 'win32') {
+      const c = candidate.toLowerCase();
+      const r = root.toLowerCase();
+      return c === r || c.startsWith(r.endsWith(path.sep) ? r : r + path.sep);
+    }
+    return candidate === root || candidate.startsWith(root.endsWith(path.sep) ? root : root + path.sep);
+  }
+
   async resolveSafe(relative: string, allowMissing = true): Promise<string> {
     const root = this.root;
     const normalized = normalizeRelative(relative);
     if (!normalized) return root;
     if (normalized.split('/').includes('..')) throw new Error('Path traversal is not permitted');
     const absolute = path.resolve(root, normalized);
-    if (absolute !== root && !absolute.startsWith(root + path.sep)) {
+    if (!this.isWithinRoot(absolute, root)) {
       throw new Error('Path escapes the workspace');
     }
     const relativeResolved = normalizeRelative(path.relative(root, absolute));
@@ -211,7 +220,7 @@ export class WorkspaceService {
     while (true) {
       try {
         const real = await fs.realpath(existing);
-        if (real !== root && !real.startsWith(root + path.sep)) throw new Error('Symlink escapes the workspace');
+        if (!this.isWithinRoot(real, root)) throw new Error('Symlink escapes the workspace');
         break;
       } catch (error) {
         const code = (error as NodeJS.ErrnoException).code;

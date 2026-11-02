@@ -15,6 +15,7 @@ import {
   type ProviderConfig,
   type RuntimeStatus,
 } from '@forgeai/shared';
+import { safeFetch, normalizeLoopbackUrl } from '@forgeai/ai';
 import type { Broadcast } from './workspace';
 import type { ProvidersService } from './providers';
 import type { SettingsService } from './settings';
@@ -471,16 +472,18 @@ export class OllamaRuntime {
   }
 
   private async health(baseUrl: string): Promise<{ version?: string } | null> {
-    const response = await fetch(`${baseUrl}/api/version`, {
+    const url = normalizeLoopbackUrl(baseUrl);
+    const response = await safeFetch(`${url}/api/version`, {
       signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
-    });
-    if (!response.ok) return null;
+    }).catch(() => null);
+    if (!response || !response.ok) return null;
     const payload = (await response.json().catch(() => ({}))) as { version?: string };
     return { version: payload.version };
   }
 
   private async tags(baseUrl: string, signal: AbortSignal): Promise<string[]> {
-    const response = await fetch(`${baseUrl}/api/tags`, { signal });
+    const url = normalizeLoopbackUrl(baseUrl);
+    const response = await safeFetch(`${url}/api/tags`, { signal });
     if (!response.ok) throw new Error(`Ollama returned ${response.status} for /api/tags`);
     const payload = (await response.json()) as { models?: { name?: string; model?: string }[] };
     return (payload.models ?? []).map((entry) => entry.name ?? entry.model ?? '').filter(Boolean);
@@ -496,6 +499,7 @@ export class OllamaRuntime {
   }
 
   private async pullModel(baseUrl: string, model: string, signal: AbortSignal): Promise<void> {
+    const url = normalizeLoopbackUrl(baseUrl);
     this.update({
       stage: 'pulling',
       modelInstalled: false,
@@ -504,7 +508,7 @@ export class OllamaRuntime {
       totalBytes: undefined,
       detail: `Downloading ${model}…`,
     });
-    const response = await fetch(`${baseUrl}/api/pull`, {
+    const response = await safeFetch(`${url}/api/pull`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: model, stream: true }),
@@ -557,11 +561,12 @@ export class OllamaRuntime {
     baseUrl: string,
     recipe: { model: string; from: string; system: string; parameters: Record<string, unknown> },
   ): Promise<void> {
+    const url = normalizeLoopbackUrl(baseUrl);
     this.update({
       stage: 'starting',
       detail: `Creating custom Sopu AI model ${recipe.model} from ${recipe.from}…`,
     });
-    const response = await fetch(`${baseUrl}/api/create`, {
+    const response = await safeFetch(`${url}/api/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -636,7 +641,8 @@ export class OllamaRuntime {
   /** Preload weights and the KV cache so the first token is fast. */
   private async warmModel(baseUrl: string): Promise<void> {
     try {
-      await fetch(`${baseUrl}/api/generate`, {
+      const url = normalizeLoopbackUrl(baseUrl);
+      await safeFetch(`${url}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -663,7 +669,8 @@ export class OllamaRuntime {
    * explicit "keep only" action for a full cleanup.
    */
   private async pruneLegacyModels(baseUrl: string, signal: AbortSignal): Promise<void> {
-    const tags = await this.tags(baseUrl, signal).catch(() => []);
+    const url = normalizeLoopbackUrl(baseUrl);
+    const tags = await this.tags(url, signal).catch(() => []);
     const keep = this.modelName().replace(/:latest$/, '');
     const legacy = new Set<string>(LEGACY_OLLAMA_MODELS);
     const targets = tags.filter((tag) => {
@@ -674,7 +681,7 @@ export class OllamaRuntime {
     for (const name of targets) {
       if (signal.aborted) return;
       try {
-        const response = await fetch(`${baseUrl}/api/delete`, {
+        const response = await safeFetch(`${url}/api/delete`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, model: name }),

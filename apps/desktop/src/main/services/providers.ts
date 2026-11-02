@@ -51,7 +51,8 @@ export class ProvidersService {
     // Migrate installs created before ForgeAI standardised on localhost.
     const ollama = this.db.listProviderRows().find((provider) => provider.kind === 'ollama');
     if (ollama) {
-      const staleUrl = /^http:\/\/(127\.0\.0\.1|0\.0\.0\.0):11434\/?$/.test(ollama.baseUrl);
+      // Never overwrite 127.0.0.1 on Windows because Ollama binds strictly to IPv4 127.0.0.1.
+      const staleUrl = process.platform !== 'win32' && /^http:\/\/(0\.0\.0\.0):11434\/?$/.test(ollama.baseUrl);
       // Older builds unloaded the model after 10 minutes. The whole point of a
       // single local model is to keep it resident, so repair that setting.
       const staleKeepAlive = !ollama.config.keepAlive || ollama.config.keepAlive === '10m';

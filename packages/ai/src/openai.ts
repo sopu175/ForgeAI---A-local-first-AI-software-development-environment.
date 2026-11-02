@@ -16,6 +16,8 @@ import {
   parseSseData,
   withTimeout,
   createActivityController,
+  safeFetch,
+  normalizeLoopbackUrl,
 } from './http';
 import type { AIProvider, OpenAICompatibleOptions } from './types';
 import { toToolSchema } from './types';
@@ -65,13 +67,13 @@ export class OpenAICompatibleProvider implements AIProvider {
   }
 
   private url(path: string): string {
-    return joinUrl(this.baseUrl, path);
+    return normalizeLoopbackUrl(joinUrl(this.baseUrl, path));
   }
 
   async health(): Promise<{ ok: boolean; latencyMs: number; version?: string; error?: string; modelCount?: number }> {
     const started = Date.now();
     try {
-      const response = await fetch(this.url('/models'), {
+      const response = await safeFetch(this.url('/models'), {
         headers: this.headers,
         signal: withTimeout(4000),
       });
@@ -92,7 +94,7 @@ export class OpenAICompatibleProvider implements AIProvider {
   }
 
   async listModels(signal?: AbortSignal): Promise<ModelInfo[]> {
-    const response = await fetch(this.url('/models'), {
+    const response = await safeFetch(this.url('/models'), {
       headers: this.headers,
       signal: withTimeout(15_000, signal),
     });
@@ -169,7 +171,7 @@ export class OpenAICompatibleProvider implements AIProvider {
 
     const activity = createActivityController(this.timeoutMs, 180_000, signal);
     try {
-      const response = await fetch(this.url('/chat/completions'), {
+      const response = await safeFetch(this.url('/chat/completions'), {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify(body),
@@ -284,7 +286,7 @@ export class OpenAICompatibleProvider implements AIProvider {
   }
 
   async embed(request: EmbedRequest, signal: AbortSignal): Promise<EmbedResponse> {
-    const response = await fetch(this.url('/embeddings'), {
+    const response = await safeFetch(this.url('/embeddings'), {
       method: 'POST',
       headers: this.headers,
       body: JSON.stringify({ model: request.model, input: request.inputs }),
