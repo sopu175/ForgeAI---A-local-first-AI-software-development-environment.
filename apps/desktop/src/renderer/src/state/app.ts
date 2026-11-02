@@ -258,7 +258,7 @@ export interface AppState {
   askConfirm(state: ConfirmState): void;
   closeConfirm(): void;
 
-  loadConversations(): Promise<void>;
+  loadConversations(preferId?: string): Promise<void>;
   selectConversation(id: string): Promise<void>;
   newChat(): void;
   deleteConversation(id: string): Promise<void>;
@@ -873,13 +873,27 @@ export const useAppStore = create<AppState>()((set, get) => ({
     set({ confirm: null });
   },
 
-  async loadConversations() {
+  async loadConversations(preferId?: string) {
     try {
       const projectId = get().project?.id;
       const conversations = await window.forge.chat.list(projectId);
       set({ conversations });
       const current = get().conversationId;
-      if (current && !conversations.some((conversation) => conversation.id === current)) {
+      const savedId =
+        preferId ??
+        current ??
+        (projectId ? localStorage.getItem(`forgeai:active-conv:${projectId}`) : null) ??
+        localStorage.getItem('forgeai:active-conv:global');
+
+      const target =
+        (savedId ? conversations.find((c) => c.id === savedId) : null) ??
+        (conversations.length > 0 ? conversations[0] : null);
+
+      if (target) {
+        if (target.id !== current || get().messages.length === 0) {
+          await get().selectConversation(target.id);
+        }
+      } else {
         set({ conversationId: null, messages: [] });
       }
     } catch {
@@ -894,6 +908,11 @@ export const useAppStore = create<AppState>()((set, get) => ({
     }
     try {
       const messages = await window.forge.chat.messages(id);
+      const projectId = get().project?.id;
+      if (projectId) {
+        localStorage.setItem(`forgeai:active-conv:${projectId}`, id);
+      }
+      localStorage.setItem('forgeai:active-conv:global', id);
       set((state) => ({
         conversationId: id,
         messages: messages.map((message) => ({
@@ -903,6 +922,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
           reasoning: message.reasoning,
           toolCalls: message.toolCalls,
           toolCallId: message.toolCallId,
+          model: message.model,
+          createdAt: message.createdAt,
         })),
         chatError: null,
         aiTab: 'chat',
@@ -924,6 +945,11 @@ export const useAppStore = create<AppState>()((set, get) => ({
       get().toast('info', 'Stop the agent run before starting a new chat.');
       return;
     }
+    const projectId = get().project?.id;
+    if (projectId) {
+      localStorage.removeItem(`forgeai:active-conv:${projectId}`);
+    }
+    localStorage.removeItem('forgeai:active-conv:global');
     set((state) => ({
       conversationId: null,
       messages: [],
@@ -938,6 +964,13 @@ export const useAppStore = create<AppState>()((set, get) => ({
   async deleteConversation(id) {
     try {
       await window.forge.chat.remove(id);
+      const projectId = get().project?.id;
+      if (projectId && localStorage.getItem(`forgeai:active-conv:${projectId}`) === id) {
+        localStorage.removeItem(`forgeai:active-conv:${projectId}`);
+      }
+      if (localStorage.getItem('forgeai:active-conv:global') === id) {
+        localStorage.removeItem('forgeai:active-conv:global');
+      }
       if (get().conversationId === id) {
         set({ conversationId: null, messages: [], chatError: null });
       }
@@ -973,8 +1006,11 @@ export const useAppStore = create<AppState>()((set, get) => ({
           model: model.model,
         });
         conversationId = conversation.id;
+        const projectId = get().project?.id;
+        if (projectId) localStorage.setItem(`forgeai:active-conv:${projectId}`, conversationId);
+        localStorage.setItem('forgeai:active-conv:global', conversationId);
         set({ conversationId });
-        void get().loadConversations();
+        void get().loadConversations(conversationId);
       }
       const stored = await window.forge.chat.addMessage({
         conversationId,
@@ -1128,6 +1164,41 @@ export const useAppStore = create<AppState>()((set, get) => ({
       get().toast('info', 'An agent is already running. Stop it before starting another.');
       return;
     }
+    const activeModel = get().selectedModel;
+    let conversationId = get().conversationId;
+    if (!conversationId) {
+      try {
+        const conversation = await window.forge.chat.create({
+          projectId: get().project?.id,
+          title: request.task.slice(0, 60).replace(/\s+/g, ' '),
+          mode: 'agent',
+          model: activeModel?.model,
+        });
+        conversationId = conversation.id;
+        set({ conversationId });
+        const projectId = get().project?.id;
+        if (projectId) localStorage.setItem(`forgeai:active-conv:${projectId}`, conversationId);
+        localStorage.setItem('forgeai:active-conv:global', conversationId);
+        void get().loadConversations(conversationId);
+      } catch {
+        // best effort
+      }
+    }
+
+    let userMsgId: string = crypto.randomUUID();
+    if (conversationId) {
+      try {
+        const stored = await window.forge.chat.addMessage({
+          conversationId,
+          role: 'user',
+          content: request.task,
+        });
+        userMsgId = stored.id;
+      } catch {
+        // best effort
+      }
+    }
+
     const previous = get().agentRun;
     const run: AgentRunState = {
       runId: 'pending',
@@ -1138,9 +1209,10 @@ export const useAppStore = create<AppState>()((set, get) => ({
       changes: [],
       steps: { step: 0, maxSteps: request.maxSteps ?? get().settings?.agent.maxSteps ?? 20 },
       startedAt: Date.now(),
-      anchor: get().messages.length,
+      anchor: get().messages.length + 1,
     };
     set((state) => ({
+      messages: [...state.messages, { id: userMsgId, role: 'user', content: request.task }],
       agentRun: run,
       agentHistory: previous
         ? [previous, ...state.agentHistory.filter((entry) => entry.runId !== previous.runId)].slice(0, 8)
@@ -1154,13 +1226,12 @@ export const useAppStore = create<AppState>()((set, get) => ({
       composerMode: 'agent',
       agentMode: request.agent,
     }));
-    const activeModel = get().selectedModel;
     try {
       const { runId } = await window.forge.agent.start({
         ...request,
         providerId: request.providerId ?? activeModel?.providerId,
         model: request.model ?? activeModel?.model,
-        conversationId: request.conversationId ?? get().conversationId ?? undefined,
+        conversationId: conversationId ?? undefined,
       });
       set((state) => ({
         agentRun: state.agentRun && state.agentRun.runId === 'pending' ? { ...state.agentRun, runId } : state.agentRun,
@@ -1212,6 +1283,41 @@ export const useAppStore = create<AppState>()((set, get) => ({
       return { agentRun: next };
     });
     if (event.type === 'done') {
+      const convId = get().conversationId;
+      const summaryText = event.report.summary || 'Task completed successfully.';
+      const filesText =
+        event.report.filesChanged.length > 0
+          ? `\n\n**Files modified:**\n${event.report.filesChanged.map((f) => `- \`${f}\``).join('\n')}`
+          : '';
+      const fullContent = `${summaryText}${filesText}`;
+      if (convId) {
+        void window.forge.chat
+          .addMessage({
+            conversationId: convId,
+            role: 'assistant',
+            content: fullContent,
+            model: get().agentRun?.model ?? get().selectedModel?.model,
+            tokensIn: event.report.promptTokens,
+            tokensOut: event.report.outputTokens,
+            durationMs: event.report.durationMs,
+          })
+          .then((stored) => {
+            set((state) => ({
+              messages: [
+                ...state.messages,
+                {
+                  id: stored.id,
+                  role: 'assistant',
+                  content: fullContent,
+                  model: stored.model,
+                  createdAt: stored.createdAt,
+                },
+              ],
+            }));
+            void get().loadConversations(convId);
+          })
+          .catch(() => undefined);
+      }
       get().toast(
         event.report.cancelled ? 'info' : 'success',
         event.report.cancelled ? 'Agent run cancelled.' : 'Agent finished.',
@@ -1219,7 +1325,34 @@ export const useAppStore = create<AppState>()((set, get) => ({
       void get().refreshTree();
       void get().refreshGit();
     }
-    if (event.type === 'error') get().toast('error', event.message);
+    if (event.type === 'error') {
+      const convId = get().conversationId;
+      if (convId) {
+        const errorContent = `⚠️ Agent encountered an issue: ${event.message}`;
+        void window.forge.chat
+          .addMessage({
+            conversationId: convId,
+            role: 'assistant',
+            content: errorContent,
+          })
+          .then((stored) => {
+            set((state) => ({
+              messages: [
+                ...state.messages,
+                {
+                  id: stored.id,
+                  role: 'assistant',
+                  content: errorContent,
+                  createdAt: stored.createdAt,
+                },
+              ],
+            }));
+            void get().loadConversations(convId);
+          })
+          .catch(() => undefined);
+      }
+      get().toast('error', event.message);
+    }
     if (event.type === 'file_change') {
       void get().refreshTree();
     }

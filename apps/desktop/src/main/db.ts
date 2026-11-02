@@ -463,7 +463,7 @@ export class Database {
   listConversations(projectId?: string): Conversation[] {
     const rows = projectId
       ? this.all<ConversationRow>(
-          'SELECT * FROM conversations WHERE project_id = ? ORDER BY updated_at DESC LIMIT 100',
+          'SELECT * FROM conversations WHERE project_id = ? OR project_id IS NULL ORDER BY updated_at DESC LIMIT 100',
           projectId,
         )
       : this.all<ConversationRow>('SELECT * FROM conversations ORDER BY updated_at DESC LIMIT 100');
