@@ -5,12 +5,15 @@ import {
   Bug,
   ChevronRight,
   FlaskConical,
+  Layers,
   ListTree,
   Play,
   Search,
+  Server,
   ShieldCheck,
   Sparkles,
   Square,
+  Zap,
 } from 'lucide-react';
 import type { AgentKind } from '@forgeai/shared';
 import { useAppStore } from '../../state/app';
@@ -42,6 +45,39 @@ const AGENTS: AgentProfile[] = [
     blurb: 'Explores the codebase and produces a concrete implementation plan without editing code.',
     icon: <ListTree size={15} />,
     examples: ['Plan a migration from REST controllers to service classes', 'Break down adding SSO into ordered tasks'],
+  },
+  {
+    kind: 'frontend',
+    title: 'Frontend',
+    blurb: 'Engineers responsive UI components, Tailwind CSS styling, Next.js page layouts and WCAG accessibility.',
+    icon: <Layers size={15} />,
+    examples: [
+      'Build a responsive dashboard sidebar with mobile drawer',
+      'Convert design tokens into Tailwind CSS classes',
+      'Improve accessible keyboard navigation and ARIA landmarks',
+    ],
+  },
+  {
+    kind: 'animation',
+    title: 'Animation',
+    blurb: 'Authors GSAP ScrollTriggers, Framer Motion transitions, Three.js 3D canvas and smooth CSS transitions.',
+    icon: <Zap size={15} />,
+    examples: [
+      'Add smooth GSAP ScrollTrigger timeline to hero section',
+      'Create page enter/exit transitions with Framer Motion',
+      'Ensure motion respects prefers-reduced-motion',
+    ],
+  },
+  {
+    kind: 'backend',
+    title: 'Backend',
+    blurb: 'Architects REST/GraphQL APIs, Next.js server actions, database queries, migrations and auth.',
+    icon: <Server size={15} />,
+    examples: [
+      'Create a secure REST endpoint with Zod schema validation',
+      'Optimize SQL queries and add index migration',
+      'Implement JWT token authentication with rate limiting',
+    ],
   },
   {
     kind: 'debugging',
