@@ -113,3 +113,4 @@ ForgeAI packages pre-tuned Modelfiles for local optimization:
 2. **Explicit IPv4 Binding on Windows:** Windows DNS latency on `localhost` dual-stack is bypassed by forcing `127.0.0.1:11434`.
 3. **Auto-Healing Settings:** If a bound model is deleted from disk, `resolveRole` gracefully falls back to the next capable model without throwing runtime exceptions.
 4. **Offline Operation:** Model catalog listings and existing local models function 100% offline. Network is only requested when explicitly pulling new weights.
+

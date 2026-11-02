@@ -10,6 +10,9 @@ import { requestTerminalCommand } from '../lib/terminalBus';
 const AGENT_LABELS: Record<AgentKind, string> = {
   coding: 'Coding agent',
   planner: 'Planner agent',
+  frontend: 'Frontend agent',
+  animation: 'Animation agent',
+  backend: 'Backend agent',
   debugging: 'Debugging agent',
   testing: 'Testing agent',
   review: 'Review agent',

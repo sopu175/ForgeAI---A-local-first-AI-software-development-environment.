@@ -91,3 +91,4 @@ Check Models in Settings to download or enable a compatible model.
 ```
 
 This prevents silent failures, unexpected runtime crashes, or garbled non-functional outputs.
+

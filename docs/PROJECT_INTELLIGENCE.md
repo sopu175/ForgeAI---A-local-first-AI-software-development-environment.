@@ -105,3 +105,4 @@ When an agent run begins, the `ContextBuilder` in `prompts.ts` constructs a boun
 * **Small Project (100 files, ~10,000 LOC):** Scans in <150ms; parses and indexes in <1.2s.
 * **Medium Project (1,000 files, ~150,000 LOC):** In-memory vector cache searches 1,500 chunks in <8ms.
 * **Memory Footprint:** In-memory Float32Array vector cache consumes <12MB for 3,000 chunks (dim 768).
+

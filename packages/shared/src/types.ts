@@ -420,7 +420,17 @@ export interface PermissionResponse {
   acceptedHunks?: number[];
 }
 
-export type AgentKind = 'coding' | 'planner' | 'debugging' | 'testing' | 'review' | 'docs' | 'seo';
+export type AgentKind =
+  | 'coding'
+  | 'planner'
+  | 'frontend'
+  | 'animation'
+  | 'backend'
+  | 'debugging'
+  | 'testing'
+  | 'review'
+  | 'docs'
+  | 'seo';
 
 export interface AgentRunRequest {
   projectId: string;

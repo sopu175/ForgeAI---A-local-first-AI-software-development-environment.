@@ -43,6 +43,9 @@ export interface AgentRunHandle {
 const ROLE_FOR_AGENT: Record<AgentKind, ModelRole> = {
   coding: 'coding',
   planner: 'plan',
+  frontend: 'frontend',
+  animation: 'animation',
+  backend: 'backend',
   debugging: 'coding',
   testing: 'testing',
   review: 'review',
@@ -815,6 +818,9 @@ export function agentKindLabel(agent: AgentKind): string {
   const labels: Record<AgentKind, string> = {
     coding: 'Coding Agent',
     planner: 'Planner Agent',
+    frontend: 'Frontend Agent',
+    animation: 'Animation Agent',
+    backend: 'Backend Agent',
     debugging: 'Debugging Agent',
     testing: 'Testing Agent',
     review: 'Review Agent',

@@ -916,6 +916,9 @@ function WelcomeScreen({
 const AGENT_LABEL: Record<AgentKind, string> = {
   coding: 'Coding',
   planner: 'Planner',
+  frontend: 'Frontend',
+  animation: 'Animation',
+  backend: 'Backend',
   debugging: 'Debugging',
   testing: 'Testing',
   review: 'Review',
