@@ -93,6 +93,8 @@ export function AssistantPanel() {
   const selectConversation = useAppStore((state) => state.selectConversation);
   const newChat = useAppStore((state) => state.newChat);
   const selectedModel = useAppStore((state) => state.selectedModel);
+  const setSelectedModel = useAppStore((state) => state.setSelectedModel);
+  const models = useAppStore((state) => state.models);
   const project = useAppStore((state) => state.project);
   const contextFiles = useAppStore((state) => state.contextFiles);
   const removeContextFile = useAppStore((state) => state.removeContextFile);
@@ -274,29 +276,38 @@ export function AssistantPanel() {
         >
           <MessageSquarePlus size={13} />
         </button>
-        <button
-          type="button"
-          onClick={() => setModelsOpen(true)}
-          className={cn(
-            'flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors cursor-pointer',
-            selectedModel
-              ? 'border-accent/40 bg-accent/10 text-accent hover:border-accent hover:bg-accent/20'
-              : 'border-line text-muted hover:border-accent hover:text-accent',
-          )}
-          title={
-            selectedModel
-              ? `${selectedModel.providerId}/${selectedModel.model} · Click to manage models & providers`
-              : 'Click to select or install a model'
-          }
-        >
-          <Zap size={10} className="shrink-0" />
-          <span className="truncate max-w-[120px]">
-            {selectedModel ? shortModelName(selectedModel.model) : 'select model'}
-          </span>
-          <span className="text-[8.5px] opacity-75 uppercase tracking-wide">
-            {selectedModel?.providerId === 'ollama' ? 'Local' : 'Cloud'}
-          </span>
-        </button>
+        <div className="flex items-center gap-1">
+          <select
+            value={selectedModel ? `${selectedModel.providerId}::${selectedModel.model}` : ''}
+            onChange={(event) => {
+              const val = event.target.value;
+              if (!val) void setSelectedModel(null);
+              else {
+                const [pid, ...rest] = val.split('::');
+                if (pid && rest.length > 0) {
+                  void setSelectedModel({ providerId: pid, model: rest.join('::') });
+                }
+              }
+            }}
+            className="h-6 max-w-[145px] rounded border border-line-soft bg-panel-2 px-1 text-[10px] font-medium text-fg focus:border-accent"
+            title="Active Model (controls Chat, Coding Agent & Planning)"
+          >
+            {models.length === 0 ? <option value="">No models</option> : null}
+            {models.map((m) => (
+              <option key={`${m.providerId}::${m.id}`} value={`${m.providerId}::${m.id}`}>
+                {shortModelName(m.id)} ({m.providerId === 'ollama' ? 'Local' : 'Cloud'})
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => setModelsOpen(true)}
+            className="chip !h-[22px] !px-1.5 !text-[9px] hover:border-accent hover:text-accent cursor-pointer"
+            title="Manage Models & Providers"
+          >
+            Manage
+          </button>
+        </div>
       </div>
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-3">

@@ -466,12 +466,31 @@ export const useAppStore = create<AppState>()((set, get) => ({
       const recommended = await window.forge.settings.recommendRoles();
       const current = get().selectedModel;
       const settings = get().settings;
-      const stillInstalled =
+
+      const currentExists =
         current && models.some((model) => model.id === current.model && model.providerId === current.providerId);
-      const selectedModel = stillInstalled
+      const chatExists =
+        settings?.modelRoles.chat &&
+        models.some((model) => model.id === settings.modelRoles.chat?.model && model.providerId === settings.modelRoles.chat?.providerId);
+
+      const candidate = currentExists
         ? current
-        : (settings?.modelRoles.chat ?? recommended.chat ?? recommended.coding ?? null);
-      set({ models, selectedModel, providers: await window.forge.providers.list() });
+        : chatExists
+          ? settings!.modelRoles.chat!
+          : (recommended.chat ?? recommended.coding ?? null);
+
+      const validFallback =
+        candidate && models.some((m) => m.id === candidate.model && m.providerId === candidate.providerId)
+          ? candidate
+          : (models.find((m) => !m.capabilities.embedding)
+              ? { providerId: models.find((m) => !m.capabilities.embedding)!.providerId, model: models.find((m) => !m.capabilities.embedding)!.id }
+              : null);
+
+      set({ models, selectedModel: validFallback, providers: await window.forge.providers.list() });
+
+      if (validFallback && (!currentExists || !chatExists)) {
+        await get().setSelectedModel(validFallback).catch(() => undefined);
+      }
     } catch (error) {
       if (showErrors) get().toast('error', errorMessage(error));
       set({ providers: await window.forge.providers.list().catch(() => get().providers) });
@@ -562,9 +581,17 @@ export const useAppStore = create<AppState>()((set, get) => ({
   async setSelectedModel(binding) {
     set({ selectedModel: binding });
     const settings = get().settings;
-    if (settings) {
+    if (settings && binding) {
       await get()
-        .updateSettings({ modelRoles: { ...settings.modelRoles, chat: binding ?? undefined } })
+        .updateSettings({
+          modelRoles: {
+            ...settings.modelRoles,
+            chat: binding,
+            coding: binding,
+            plan: binding,
+            review: binding,
+          },
+        })
         .catch(() => undefined);
     }
   },
@@ -908,7 +935,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
     const message = text.trim();
     if (!message || get().streaming) return;
     let model = get().selectedModel;
-    if (!model) {
+    if (!model || !get().models.some((m) => m.id === model?.model && m.providerId === model?.providerId)) {
       await get().refreshModels();
       model = get().selectedModel;
     }
@@ -1111,9 +1138,12 @@ export const useAppStore = create<AppState>()((set, get) => ({
       composerMode: 'agent',
       agentMode: request.agent,
     }));
+    const activeModel = get().selectedModel;
     try {
       const { runId } = await window.forge.agent.start({
         ...request,
+        providerId: request.providerId ?? activeModel?.providerId,
+        model: request.model ?? activeModel?.model,
         conversationId: request.conversationId ?? get().conversationId ?? undefined,
       });
       set((state) => ({

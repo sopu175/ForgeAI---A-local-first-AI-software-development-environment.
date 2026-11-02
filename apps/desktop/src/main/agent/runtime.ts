@@ -124,14 +124,28 @@ export class AgentRuntimeService {
 
     try {
       const maxSteps = Math.min(request.maxSteps ?? this.settings.get().agent.maxSteps, 60);
-      binding =
-        request.providerId && request.model
+      const allModels = await this.providers.models(false);
+
+      if (request.providerId && request.model) {
+        const modelExists = allModels.some((m) => m.providerId === request.providerId && m.id === request.model);
+        binding = modelExists
           ? { providerId: request.providerId, model: request.model }
           : await this.providers.resolveRole(ROLE_FOR_AGENT[agent]);
+      } else {
+        binding = await this.providers.resolveRole(ROLE_FOR_AGENT[agent]);
+      }
+
       provider = this.providers.build(binding.providerId);
-      const modelInfo = (await this.providers.models(false)).find(
+      let modelInfo = allModels.find(
         (model) => model.id === binding?.model && model.providerId === binding?.providerId,
       );
+      if (!modelInfo) {
+        binding = await this.providers.resolveRole('coding');
+        provider = this.providers.build(binding.providerId);
+        modelInfo = allModels.find(
+          (model) => model.id === binding?.model && model.providerId === binding?.providerId,
+        );
+      }
       if (modelInfo?.capabilities.embedding)
         throw new Error('Embedding models cannot run agents. Select a chat/coding model.');
 

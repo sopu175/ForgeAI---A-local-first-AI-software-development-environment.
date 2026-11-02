@@ -336,11 +336,32 @@ export function registerIpc(ctx: AppContext): () => void {
     const started = Date.now();
     void (async () => {
       try {
-        const provider = ctx.providers.build(args.providerId);
+        let activeProviderId = args.providerId;
+        let activeModel = args.model;
+
+        // Auto-heal if the requested model is deleted or missing from the provider
+        const availableModels = await ctx.providers.models(false).catch(() => []);
+        const exists = availableModels.some((m) => m.providerId === activeProviderId && m.id === activeModel);
+        if (!exists && availableModels.length > 0) {
+          const fallback = availableModels.find((m) => !m.capabilities.embedding) ?? availableModels[0];
+          if (fallback) {
+            activeProviderId = fallback.providerId;
+            activeModel = fallback.id;
+            void ctx.settings.update({
+              modelRoles: {
+                ...ctx.settings.get().modelRoles,
+                chat: { providerId: activeProviderId, model: activeModel },
+                coding: { providerId: activeProviderId, model: activeModel },
+              },
+            });
+          }
+        }
+
+        const provider = ctx.providers.build(activeProviderId);
         for await (const delta of provider.chat(
           {
-            providerId: args.providerId,
-            model: args.model,
+            providerId: activeProviderId,
+            model: activeModel,
             messages: args.messages,
             temperature: args.temperature,
             maxTokens: args.maxTokens,

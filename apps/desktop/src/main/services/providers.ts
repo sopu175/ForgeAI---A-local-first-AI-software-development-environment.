@@ -203,14 +203,23 @@ export class ProvidersService {
 
   async resolveRole(role: ModelRole): Promise<RoleBinding> {
     const bound = this.settings.role(role);
+    const models = await this.models(false);
     if (bound) {
       const provider = this.list().find((item) => item.id === bound.providerId);
-      if (provider?.enabled) return bound;
+      const modelExists = models.some((m) => m.providerId === bound.providerId && m.id === bound.model);
+      if (provider?.enabled && modelExists) return bound;
     }
-    const models = await this.models(false);
     const recommended = recommendRoles(models);
-    const pick = recommended[role];
-    if (pick) return pick;
+    const pick = recommended[role] ?? recommended.coding ?? recommended.chat;
+    if (pick) {
+      // Auto-heal settings so deleted or non-existent models are replaced with valid models
+      try {
+        await this.settings.update({ modelRoles: { ...this.settings.get().modelRoles, [role]: pick } });
+      } catch {
+        // ignore
+      }
+      return pick;
+    }
     const fallback = models.find((model) =>
       role === 'embedding' ? model.capabilities.embedding : !model.capabilities.embedding,
     );
@@ -221,7 +230,13 @@ export class ProvidersService {
           : 'No local model found. Start Ollama and pull a model, then select it in the model picker.',
       );
     }
-    return { providerId: fallback.providerId, model: fallback.id };
+    const autoFallback = { providerId: fallback.providerId, model: fallback.id };
+    try {
+      await this.settings.update({ modelRoles: { ...this.settings.get().modelRoles, [role]: autoFallback } });
+    } catch {
+      // ignore
+    }
+    return autoFallback;
   }
 
   async resolveChat(preferred?: { providerId?: string; model?: string }): Promise<RoleBinding> {
