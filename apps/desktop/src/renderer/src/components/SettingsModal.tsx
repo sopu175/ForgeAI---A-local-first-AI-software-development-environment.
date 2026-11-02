@@ -340,9 +340,7 @@ export function SettingsModal() {
             </div>
           ) : null}
 
-          {section === 'keybindings' ? (
-            <KeybindingsSection onClose={() => setOpen(false)} />
-          ) : null}
+          {section === 'keybindings' ? <KeybindingsSection onClose={() => setOpen(false)} /> : null}
 
           {section === 'preview' ? (
             <div className="space-y-4">
@@ -1070,7 +1068,9 @@ function KeybindingsSection({ onClose }: { onClose: () => void }) {
         <div>
           <SectionLabel>Keyboard Shortcuts</SectionLabel>
           <p className="text-[10.5px] leading-relaxed text-faint">
-            Standard macOS and IDE keybindings. Press <kbd className="rounded border border-line bg-panel-2 px-1 text-[9.5px]">⌘K ⌘S</kbd> anywhere to open this screen.
+            Standard macOS and IDE keybindings. Press{' '}
+            <kbd className="rounded border border-line bg-panel-2 px-1 text-[9.5px]">⌘K ⌘S</kbd> anywhere to open this
+            screen.
           </p>
         </div>
         <span className="chip !text-[9.5px]">
@@ -1108,7 +1108,9 @@ function KeybindingsSection({ onClose }: { onClose: () => void }) {
               onClick={() => setCategoryFilter(cat)}
               className={cn(
                 'btn !h-6 !px-2 !text-[10px]',
-                categoryFilter === cat ? 'border-accent bg-accent-soft font-medium text-accent' : 'text-faint hover:text-fg',
+                categoryFilter === cat
+                  ? 'border-accent bg-accent-soft font-medium text-accent'
+                  : 'text-faint hover:text-fg',
               )}
             >
               {cat}
@@ -1179,13 +1181,27 @@ function KeybindingsSection({ onClose }: { onClose: () => void }) {
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line-soft bg-panel-2 px-3 py-2 text-[10px] text-faint">
         <div className="flex items-center gap-3">
           <span className="font-medium text-muted">macOS Keys:</span>
-          <span><kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">⌘</kbd> Command</span>
-          <span><kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">⇧</kbd> Shift</span>
-          <span><kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">⌥</kbd> Option</span>
-          <span><kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">⌃</kbd> Control</span>
-          <span><kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">↵</kbd> Return</span>
+          <span>
+            <kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">⌘</kbd> Command
+          </span>
+          <span>
+            <kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">⇧</kbd> Shift
+          </span>
+          <span>
+            <kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">⌥</kbd> Option
+          </span>
+          <span>
+            <kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">⌃</kbd> Control
+          </span>
+          <span>
+            <kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">↵</kbd> Return
+          </span>
         </div>
-        <span>Chord shortcut: Press <kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">⌘K</kbd> then <kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">⌘S</kbd></span>
+        <span>
+          Chord shortcut: Press{' '}
+          <kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">⌘K</kbd> then{' '}
+          <kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">⌘S</kbd>
+        </span>
       </div>
     </div>
   );

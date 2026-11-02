@@ -271,7 +271,9 @@ export function AssistantPanel() {
             className="h-7 w-full cursor-pointer appearance-none truncate rounded-md border border-transparent bg-transparent pl-2 pr-6 text-[11px] text-muted hover:border-line-soft hover:bg-panel-2/60 focus:border-accent focus:outline-hidden"
             title="Conversation history"
           >
-            <option value="" className="bg-bg text-fg">New conversation</option>
+            <option value="" className="bg-bg text-fg">
+              New conversation
+            </option>
             {conversations.map((conversation) => (
               <option key={conversation.id} value={conversation.id} className="bg-bg text-fg">
                 {conversation.title || 'Untitled chat'}
@@ -305,7 +307,11 @@ export function AssistantPanel() {
               className="h-7 min-w-[130px] max-w-[190px] cursor-pointer appearance-none rounded-md border border-line-soft bg-panel-2 pl-2 pr-6 text-[11px] font-medium text-fg hover:border-line focus:border-accent focus:outline-hidden"
               title="Active Model (controls Chat, Coding Agent & Planning)"
             >
-              {models.length === 0 ? <option value="" className="bg-bg text-fg">No models</option> : null}
+              {models.length === 0 ? (
+                <option value="" className="bg-bg text-fg">
+                  No models
+                </option>
+              ) : null}
               {models.map((m) => (
                 <option key={`${m.providerId}::${m.id}`} value={`${m.providerId}::${m.id}`} className="bg-bg text-fg">
                   {shortModelName(m.id)} ({m.providerId === 'ollama' ? 'Local' : 'Cloud'})
@@ -355,7 +361,10 @@ export function AssistantPanel() {
             agentMode={agentMode}
             onPlanFirst={() => launchAgent(pendingTask, agentMode, true)}
             onExecute={() => launchAgent(pendingTask, agentMode, false)}
-            onCancel={() => { setPendingTask(null); setInput(pendingTask); }}
+            onCancel={() => {
+              setPendingTask(null);
+              setInput(pendingTask);
+            }}
           />
         ) : null}
 
@@ -815,9 +824,7 @@ function WelcomeScreen({
             <button
               key={action.label}
               type="button"
-              onClick={() =>
-                action.mode === 'chat' ? onSendChat(action.tip) : onSetInput(action.tip)
-              }
+              onClick={() => (action.mode === 'chat' ? onSendChat(action.tip) : onSetInput(action.tip))}
               className="focus-ring flex items-center gap-2 rounded-md border border-line-soft bg-panel-2 px-2.5 py-2 text-left text-[10px] text-muted hover:border-accent/40 hover:bg-panel-3 hover:text-fg"
             >
               <span className="shrink-0 text-accent/70">{action.icon}</span>
@@ -846,13 +853,17 @@ function WelcomeScreen({
         </p>
         <ul className="flex flex-col gap-1 text-[9.5px] text-faint">
           <li>
-            <strong className="text-fg">sopu-coder (7B) &amp; fast (4B)</strong>: 100% free, private, offline Apple Silicon optimized inference.
+            <strong className="text-fg">sopu-coder (7B) &amp; fast (4B)</strong>: 100% free, private, offline Apple
+            Silicon optimized inference.
           </li>
           <li>
-            <strong className="text-fg">Claude 3.5 Sonnet / Haiku</strong>: Connect via OpenRouter or Anthropic in Models → Providers.
+            <strong className="text-fg">Claude 3.5 Sonnet / Haiku</strong>: Connect via OpenRouter or Anthropic in
+            Models → Providers.
           </li>
           <li>
-            <strong className="text-fg">Free Cloud Models</strong>: OpenRouter (<code className="font-mono text-fg">:free</code> endpoints for DeepSeek R1/V3, Llama 3.3 70B) &amp; Groq (500+ tok/s).
+            <strong className="text-fg">Free Cloud Models</strong>: OpenRouter (
+            <code className="font-mono text-fg">:free</code> endpoints for DeepSeek R1/V3, Llama 3.3 70B) &amp; Groq
+            (500+ tok/s).
           </li>
         </ul>
       </div>
@@ -866,9 +877,9 @@ function WelcomeScreen({
           <div>
             <p className="font-semibold text-muted">New to Git?</p>
             <p className="leading-relaxed">
-              Run <code className="rounded bg-panel-3 px-1 font-mono text-fg">git init</code> in the terminal, then
-              open the Source Control panel (⌘⇧G). After your first commit the branch, staged changes and history
-              all update in real time.
+              Run <code className="rounded bg-panel-3 px-1 font-mono text-fg">git init</code> in the terminal, then open
+              the Source Control panel (⌘⇧G). After your first commit the branch, staged changes and history all update
+              in real time.
             </p>
           </div>
           <div>
@@ -883,11 +894,11 @@ function WelcomeScreen({
             <p className="leading-relaxed">
               Run <code className="rounded bg-panel-3 px-1 font-mono text-fg">yarn export-data</code> to export
               conversation training data, then{' '}
-              <code className="rounded bg-panel-3 px-1 font-mono text-fg">yarn train:lora</code> to fine-tune.
-              Publish with{' '}
-              <code className="rounded bg-panel-3 px-1 font-mono text-fg">ollama create my-model -f Modelfile</code>{' '}
-              and select it in the model picker. The model is saved alongside Git history and shared with your team
-              via <code className="rounded bg-panel-3 px-1 font-mono text-fg">git push</code>.
+              <code className="rounded bg-panel-3 px-1 font-mono text-fg">yarn train:lora</code> to fine-tune. Publish
+              with{' '}
+              <code className="rounded bg-panel-3 px-1 font-mono text-fg">ollama create my-model -f Modelfile</code> and
+              select it in the model picker. The model is saved alongside Git history and shared with your team via{' '}
+              <code className="rounded bg-panel-3 px-1 font-mono text-fg">git push</code>.
             </p>
           </div>
         </div>
@@ -897,12 +908,24 @@ function WelcomeScreen({
       <div className="w-full max-w-[380px] rounded-md border border-line-soft bg-panel-2 px-3 py-2.5">
         <p className="mb-1.5 text-[9.5px] font-semibold uppercase tracking-wider text-faint">Tips &amp; Shortcuts</p>
         <ul className="flex flex-col gap-1 text-[9.5px] leading-relaxed text-faint">
-          <li><span className="text-muted">⌘K ⌘S</span> — open Keyboard Shortcuts settings</li>
-          <li><span className="text-muted">⌘⌥N</span> — new AI conversation</li>
-          <li><span className="text-muted">⌘K</span> — inline AI code edit</li>
-          <li><span className="text-muted">Shift+Enter</span> — multi-line input</li>
-          <li><span className="text-muted">📎 Attach</span> — pin any file to the prompt</li>
-          <li><span className="text-muted">Agent mode</span> — autonomous edits, test execution and file verification</li>
+          <li>
+            <span className="text-muted">⌘K ⌘S</span> — open Keyboard Shortcuts settings
+          </li>
+          <li>
+            <span className="text-muted">⌘⌥N</span> — new AI conversation
+          </li>
+          <li>
+            <span className="text-muted">⌘K</span> — inline AI code edit
+          </li>
+          <li>
+            <span className="text-muted">Shift+Enter</span> — multi-line input
+          </li>
+          <li>
+            <span className="text-muted">📎 Attach</span> — pin any file to the prompt
+          </li>
+          <li>
+            <span className="text-muted">Agent mode</span> — autonomous edits, test execution and file verification
+          </li>
         </ul>
       </div>
     </div>
@@ -943,17 +966,15 @@ function AgentConfirmCard({
     <div className="mt-2 overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--accent)_40%,transparent)] bg-accent/5 shadow-xs">
       <div className="flex items-center gap-2 border-b border-accent/20 bg-accent/8 px-3 py-2">
         <Bot size={13} className="shrink-0 text-accent" />
-        <span className="text-[11.5px] font-semibold text-accent">
-          Ready to run {AGENT_LABEL[agentMode]} Agent
-        </span>
+        <span className="text-[11.5px] font-semibold text-accent">Ready to run {AGENT_LABEL[agentMode]} Agent</span>
       </div>
       <div className="px-3 py-2.5">
         <p className="rounded-md bg-panel-2 px-2.5 py-2 text-[11.5px] leading-relaxed text-fg border border-line-soft">
           {task}
         </p>
         <p className="mt-2 text-[10px] leading-relaxed text-faint">
-          The agent will read files, propose diffs and may run commands.{' '}
-          Every write and shell command requires your explicit approval.
+          The agent will read files, propose diffs and may run commands. Every write and shell command requires your
+          explicit approval.
         </p>
         <div className="mt-3 flex items-center gap-2">
           <button
@@ -982,7 +1003,8 @@ function AgentConfirmCard({
           </button>
         </div>
         <p className="mt-1.5 text-[9px] text-faint text-center">
-          <strong className="text-muted">Plan first</strong> runs a read-only Planner that maps out files and steps before any edits are made.
+          <strong className="text-muted">Plan first</strong> runs a read-only Planner that maps out files and steps
+          before any edits are made.
         </p>
       </div>
     </div>

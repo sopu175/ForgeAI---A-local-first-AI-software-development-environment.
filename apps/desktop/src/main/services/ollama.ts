@@ -632,7 +632,10 @@ export class OllamaRuntime {
       changed = true;
     }
 
-    if (roles.embedding?.providerId === 'ollama' && (roles.embedding.model === primary || roles.embedding.model === DEFAULT_OLLAMA_MODEL)) {
+    if (
+      roles.embedding?.providerId === 'ollama' &&
+      (roles.embedding.model === primary || roles.embedding.model === DEFAULT_OLLAMA_MODEL)
+    ) {
       delete roles.embedding;
       changed = true;
     }

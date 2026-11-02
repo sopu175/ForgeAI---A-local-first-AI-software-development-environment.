@@ -206,47 +206,47 @@ export class OpenAICompatibleProvider implements AIProvider {
       };
 
       for await (const line of iterateLines(response, activity)) {
-      const data = parseSseData(line);
-      if (!data) continue;
-      let chunk: OpenAiChunk;
-      try {
-        chunk = JSON.parse(data) as OpenAiChunk;
-      } catch {
-        continue;
-      }
-      if (chunk.error?.message) {
-        yield { type: 'error', message: chunk.error.message };
-        return;
-      }
-      if (chunk.usage) {
-        promptTokens = chunk.usage.prompt_tokens ?? promptTokens;
-        outputTokens = chunk.usage.completion_tokens ?? outputTokens;
-      }
-      const choice = chunk.choices?.[0];
-      if (choice) {
-        const delta = choice.delta ?? choice.message;
-        const reasoning = delta?.reasoning_content ?? delta?.reasoning;
-        if (reasoning) yield { type: 'reasoning', text: reasoning };
-        if (delta?.content) yield { type: 'text', text: delta.content };
-        if (delta?.tool_calls) {
-          for (const [fallbackIndex, toolCall] of delta.tool_calls.entries()) {
-            const index = toolCall.index ?? fallbackIndex;
-            const existing = pendingCalls.get(index) ?? { id: '', name: '', args: '' };
-            if (toolCall.id) existing.id = toolCall.id;
-            if (toolCall.function?.name) existing.name += toolCall.function.name;
-            if (toolCall.function?.arguments) existing.args += toolCall.function.arguments;
-            pendingCalls.set(index, existing);
+        const data = parseSseData(line);
+        if (!data) continue;
+        let chunk: OpenAiChunk;
+        try {
+          chunk = JSON.parse(data) as OpenAiChunk;
+        } catch {
+          continue;
+        }
+        if (chunk.error?.message) {
+          yield { type: 'error', message: chunk.error.message };
+          return;
+        }
+        if (chunk.usage) {
+          promptTokens = chunk.usage.prompt_tokens ?? promptTokens;
+          outputTokens = chunk.usage.completion_tokens ?? outputTokens;
+        }
+        const choice = chunk.choices?.[0];
+        if (choice) {
+          const delta = choice.delta ?? choice.message;
+          const reasoning = delta?.reasoning_content ?? delta?.reasoning;
+          if (reasoning) yield { type: 'reasoning', text: reasoning };
+          if (delta?.content) yield { type: 'text', text: delta.content };
+          if (delta?.tool_calls) {
+            for (const [fallbackIndex, toolCall] of delta.tool_calls.entries()) {
+              const index = toolCall.index ?? fallbackIndex;
+              const existing = pendingCalls.get(index) ?? { id: '', name: '', args: '' };
+              if (toolCall.id) existing.id = toolCall.id;
+              if (toolCall.function?.name) existing.name += toolCall.function.name;
+              if (toolCall.function?.arguments) existing.args += toolCall.function.arguments;
+              pendingCalls.set(index, existing);
+            }
+          }
+          if (choice.finish_reason) {
+            finishReason = choice.finish_reason;
+            for (const deltaOut of flushCalls()) yield deltaOut;
           }
         }
-        if (choice.finish_reason) {
-          finishReason = choice.finish_reason;
-          for (const deltaOut of flushCalls()) yield deltaOut;
+        if (finishReason) {
+          // Usage arrives in a final chunk after finish_reason on most servers.
         }
       }
-      if (finishReason) {
-        // Usage arrives in a final chunk after finish_reason on most servers.
-      }
-    }
       for (const deltaOut of flushCalls()) yield deltaOut;
       if (promptTokens || outputTokens) {
         yield { type: 'usage', promptTokens, outputTokens };

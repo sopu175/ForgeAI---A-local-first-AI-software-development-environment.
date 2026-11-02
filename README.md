@@ -6,21 +6,41 @@ code leaves your computer. Cloud providers are optional.
 
 ![ForgeAI running with no project open](docs/screenshot.png)
 
-- Streaming chat, inline completion, quick edit, explain, refactor, tests and docs
-- Autonomous coding agent with a permission-gated tool registry, plus planner, debugging, testing,
-  review, docs and **SEO** agents
+- Streaming chat, inline completion, quick edit, explain, refactor, animation, tests and docs
+- Autonomous specialist agent team with permission-gated execution: **Planner**, **Frontend**, **Animation**, **Backend**, **SEO**, **Testing**, **Code Review**, and **Docs** agents
+- **10 Configurable Model Roles:** General Chat, Planning, Frontend Coding, Animation, Backend Coding, SEO, Testing, Code Review, Fast Completion, and Embeddings
+- **Persistent Project Memory:** SQLite-backed project conventions, architectural decisions, and feedback that persist across sessions without model fine-tuning confusion
+- **Intelligent Model Router:** Dynamic capability-matching, user-preference overrides, and safe fallback chains
 - **Sopu AI custom models:** Optimized `sopu-coder` (7B) for agent coding and `sopu-coder-fast` (4B) for instant inline completions
 - Full-stack specialization: JavaScript/TypeScript, React, Next.js, PHP (Laravel, Yii2, WordPress), and Python
 - Kiro-style spec workflow: requirements → design → tasks, with explicit approvals
-- Codebase indexing, embeddings (`nomic-embed-text`) and retrieval-grounded answers
-- Monaco editor with tabs, split view, diffs and hunk-level accept/revert
-- Built-in terminal, Git panel, search, problems, output and run/debug helpers
+- Codebase indexing, embeddings (`nomic-embed-text`), secret exclusion, and hybrid retrieval
+- Monaco editor with tabs, split view, diffs, hunk-level accept/revert, and "Ask AI to fix" diagnostics
+- Built-in terminal with subprocess environment sanitization, Git panel, search, problems, output and run/debug helpers
 - **Zero-setup local AI:** ForgeAI finds, installs, starts and prepares Ollama for you
-- **Apple Silicon Hardware Tuning:** Metal 4 GPU acceleration, Flash Attention, and quantized 8-bit KV cache (`q8_0`) for 50% memory savings
+- **Apple Silicon & Windows Tuning:** Metal GPU acceleration, Flash Attention, normalized keep-alive, and socket timeout protection
 - **Zero-timeout streaming:** Infinite streaming duration as long as tokens are actively generating
 - VS Code Dark+/Light+ colours, blue status bar and familiar tab/editor conventions
 
 Architecture details live in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+---
+
+## Architecture & Roadmap Deliverables
+
+The implementation of the 10-phase production roadmap is documented across specialized guides:
+
+- [CODEBASE_AUDIT.md](docs/CODEBASE_AUDIT.md) — Baseline architecture audit, explorer refresh stabilization, and ESLint health.
+- [MODEL_MANAGEMENT.md](docs/MODEL_MANAGEMENT.md) — 10 specialist model roles, capability detection, and provider adapters.
+- [PROJECT_INTELLIGENCE.md](docs/PROJECT_INTELLIGENCE.md) — AST symbol extraction, incremental watcher, hybrid ranking, and secret exclusion.
+- [MODEL_ROUTING.md](docs/MODEL_ROUTING.md) — Task-to-role matching, tool capability validation, and deterministic fallbacks.
+- [AGENT_ORCHESTRATION.md](docs/AGENT_ORCHESTRATION.md) — Specialist agent workflows, handoff contracts, and verification gates.
+- [PROJECT_MEMORY.md](docs/PROJECT_MEMORY.md) — Persistent project memory schema, workspace isolation, and ContextPanel UI.
+- [IDE_WORKFLOWS.md](docs/IDE_WORKFLOWS.md) — QuickEdit dialog, animation tools, Monaco context menu, and diagnostic repair.
+- [LOCAL_PERFORMANCE.md](docs/LOCAL_PERFORMANCE.md) — Measured performance benchmarks, keep-alive tuning, and memory bounds.
+- [SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) — Subprocess environment scrubbing, SSRF protection, and path confinement.
+- [RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) — Production release verification protocol and test gate status.
+- [KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) — Hardware boundaries, small model caveats, and platform considerations.
 
 ---
 
@@ -256,12 +276,12 @@ ForgeAI is tuned specifically for Apple Silicon (M1/M2/M3/M4) unified memory arc
 
 ### Real Benchmark (MacBook Pro M1 Pro 16 GB RAM)
 
-| Model Profile | Base Weight | Parameters | VRAM Footprint | Prompt Speed | Generation Speed | Context Headroom |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| **`sopu-coder`** *(Primary)* | `qwen2.5-coder:7b` | 7.6B | **4.8 GB** | **148.1 tok/s** | **13.4 tok/s** | **8,192 tokens** |
-| **`sopu-coder-fast`** *(Inline)* | `qwen3.5:4b` | 4.2B | **3.1 GB** | **186.3 tok/s** | **18.5 – 21.4 tok/s** | **4,096 tokens** |
-| `nomic-embed-text` *(RAG)* | `nomic-embed-text` | 137M | **274 MB** | N/A | High throughput | **2,048 tokens** |
-| `qwen2.5-coder:14b` *(Heavy)* | `qwen2.5-coder:14b` | 14.8B | **9.5 GB** | 38.5 tok/s | 5.4 tok/s | Memory tight (~6% free) |
+| Model Profile                    | Base Weight         | Parameters | VRAM Footprint |  Prompt Speed   |   Generation Speed    |    Context Headroom     |
+| :------------------------------- | :------------------ | :--------: | :------------: | :-------------: | :-------------------: | :---------------------: |
+| **`sopu-coder`** _(Primary)_     | `qwen2.5-coder:7b`  |    7.6B    |   **4.8 GB**   | **148.1 tok/s** |    **13.4 tok/s**     |    **8,192 tokens**     |
+| **`sopu-coder-fast`** _(Inline)_ | `qwen3.5:4b`        |    4.2B    |   **3.1 GB**   | **186.3 tok/s** | **18.5 – 21.4 tok/s** |    **4,096 tokens**     |
+| `nomic-embed-text` _(RAG)_       | `nomic-embed-text`  |    137M    |   **274 MB**   |       N/A       |    High throughput    |    **2,048 tokens**     |
+| `qwen2.5-coder:14b` _(Heavy)_    | `qwen2.5-coder:14b` |   14.8B    |   **9.5 GB**   |   38.5 tok/s    |       5.4 tok/s       | Memory tight (~6% free) |
 
 > [!TIP]
 > **Why 7B is the sweet spot for 16 GB Macs:** `sopu-coder` (7B) is **2.5x faster** than 14B (13.4 tok/s vs 5.4 tok/s) and uses only 4.8 GB VRAM. This leaves **~11 GB of unified memory completely free** for WebStorm, VS Code, Node dev servers, Docker, and Chrome without swap thrashing.
@@ -298,6 +318,7 @@ launchctl setenv OLLAMA_CONTEXT_LENGTH 8192
 ### Zero-Timeout Streaming Architecture
 
 Local models processing large multi-file diffs or extensive test plans can take several minutes to output. ForgeAI implements an **activity-based streaming controller**:
+
 - **10-minute initial window:** Gives heavy models ample time for cold-loading from SSD and large prompt prefill without timing out.
 - **Inactivity refresh (180s):** The timeout timer automatically resets every time a token or chunk arrives. As long as the model is actively streaming code, requests **never time out**.
 
@@ -323,11 +344,13 @@ ForgeAI adopts performance patterns directly from the **[Microsoft Monaco Editor
 ## 6. How to Use ForgeAI Properly
 
 ### 1. Model Selection & Roles
+
 - **Active Model Dropdown:** Click the model dropdown in the top-right header of the **AI Assistant** panel (or press `⌘⌥B` to toggle AI).
 - **Local Zero-Cost Inference:** Select `sopu-coder (Local)` (7B) for deep multi-file agentic tasks or `sopu-coder-fast (Local)` (4B) for high-speed autocomplete.
 - **Optional Cloud Models:** If you need Claude 3.5 Sonnet, DeepSeek V3/R1, or Groq, navigate to **Manage Models** (`⌘K ⌘S` → Models or click `Manage`), enter your API key, and enable the provider. The active model dropdown updates instantly.
 
 ### 2. Autonomous Agent Mode (`⌘⇧↵`)
+
 - Switch the chat panel to **Agent** mode (or select **Coding**, **Planner**, **Debugging**, **Testing**, **Review**, **Docs**, or **SEO**).
 - Give the agent a high-level goal (e.g. `Implement authentication middleware and update routing in src/`).
 - **Unified Action Cards:**
@@ -338,21 +361,24 @@ ForgeAI adopts performance patterns directly from the **[Microsoft Monaco Editor
     - 🧭 **Workspace Scan**: Compact hierarchical folder overview.
 
 ### 3. Live Terminal & Workspace Code Panel Synchronization
+
 - **Instant Code & Tree Sync:** When you execute commands in the built-in terminal (`touch`, `mkdir`, `rm`, `npm run build`, `composer install`), changes are instantly detected and rendered in the left-side **File Explorer** and active **Monaco Editor** tabs without requiring manual refresh.
 - **Expanded Directory Memory:** Unlike basic file trees that collapse or freeze, ForgeAI automatically queries all currently expanded directories whenever the workspace changes, ensuring nested additions and modifications appear immediately.
 - **Terminal Git Operations:** Git commands executed in the terminal (`git checkout`, `git switch`, `git add`, `git commit`, `git pull`, `git reset`) update `.git/HEAD` and `.git/index`, which instantly broadcasts a `git:changed` event to refresh the **Source Control** sidebar and gutter indicators.
-    - ✏️ **Edit File**: Shows exact file paths with live `+additions -deletions`.
-    - 💻 **Terminal Command**: Shows commands with exit codes, execution output, and quick **Copy Output**.
-    - 🧭 **Workspace Scan**: Shows indexed files and stack overview.
+  - ✏️ **Edit File**: Shows exact file paths with live `+additions -deletions`.
+  - 💻 **Terminal Command**: Shows commands with exit codes, execution output, and quick **Copy Output**.
+  - 🧭 **Workspace Scan**: Shows indexed files and stack overview.
   - Intermediate tool call steps can be expanded/collapsed individually.
   - Review all file changes in the **Diffs** tab or the collapsible **File changes** drawer before approving writes.
 
 ### 3. Inline AI Editing (`⌘K`)
+
 - In any code file, select a block of code (or leave cursor at target location) and press `⌘K`.
 - Type an instruction (e.g., `Add error boundary and typed props`).
 - Inspect the inline preview diff and press **Accept** (`Enter`) or **Discard** (`Esc`).
 
 ### 4. Codebase Context Pinning (`📎 Attach`)
+
 - Click **📎 Attach** (or use the context file pills) to pin reference files directly into the prompt context for chat or agent runs.
 - ForgeAI will ground its reasoning in those files using local vector embeddings (`nomic-embed-text`) and keyword search.
 
@@ -361,6 +387,7 @@ ForgeAI adopts performance patterns directly from the **[Microsoft Monaco Editor
 ## 7. Sharing & Reproducing Models with Git
 
 Raw GGUF model files are between 3 GB and 9 GB in size. Tracking multi-gigabyte binary blobs directly in Git is discouraged because:
+
 1. GitHub enforces a strict 100 MB file limit.
 2. Git LFS imposes bandwidth and storage costs.
 3. Binary blobs make diffing and version control impossible.
@@ -370,12 +397,14 @@ Raw GGUF model files are between 3 GB and 9 GB in size. Tracking multi-gigabyte 
 ForgeAI uses **Git-tracked Modelfile recipes**. The repository tracks the exact instructions, temperature, top-p, repeat penalty, context window, and tailored system prompt, while pulling the base quantized weights on demand.
 
 The repository includes two tracked recipes in [`modelfiles/`](modelfiles/):
+
 - [`modelfiles/Modelfile.sopu-coder`](modelfiles/Modelfile.sopu-coder): 7B full-stack engineering model (TypeScript, React, Next.js, PHP, Python, tool-calling).
 - [`modelfiles/Modelfile.sopu-coder-fast`](modelfiles/Modelfile.sopu-coder-fast): 4B low-latency inline completion model.
 
 ### Zero-Step Automated Installation (In-App)
 
 ForgeAI now **automatically builds and installs `sopu-coder` and `sopu-coder-fast` directly inside the app**:
+
 1. **On First Launch / Runtime Bootstrap:**
    - ForgeAI checks if `sopu-coder` and `sopu-coder-fast` are present.
    - If missing, it downloads the base weights (`qwen2.5-coder:7b` and `qwen3.5:4b`) and immediately compiles the custom models via the `/api/create` engine.
@@ -420,11 +449,14 @@ ollama list
 If you want to distribute ready-to-run models without rebuilding from source:
 
 1. **Push to the Ollama Registry:**
+
    ```bash
    ollama cp sopu-coder your-username/sopu-coder
    ollama push your-username/sopu-coder
    ```
+
    Teammates can then simply run:
+
    ```bash
    ollama run your-username/sopu-coder
    ```
@@ -477,7 +509,9 @@ Instead, Sopu AI provides an **Autonomous Data Harvesting & Continuous LoRA Fine
 ```
 
 ### Step 1: Automatic Interaction Harvesting
+
 Every successful turn in ForgeAI is saved to the local SQLite database (`forgeai.db`):
+
 - User prompts and attached code context
 - Assistant responses, reasoning traces, and tool calls
 - Accepted git diffs and code corrections
@@ -486,6 +520,7 @@ Every successful turn in ForgeAI is saved to the local SQLite database (`forgeai
 This data is **100% private to your machine** by default—no telemetry leaves your computer.
 
 ### Step 2: One-Command Dataset Export (`yarn export-data`)
+
 To harvest high-quality training pairs from your real-world usage, run:
 
 ```bash
@@ -493,15 +528,22 @@ yarn export-data
 ```
 
 This runs [`scripts/export-training-data.mjs`](scripts/export-training-data.mjs), which:
+
 1. Connects to `forgeai.db`.
 2. Filters out aborted runs, errors, empty prompts, and raw tool syntax.
 3. Formats conversations into standard Hugging Face / OpenAI / ShareGPT instruction format:
    ```json
-   {"messages": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}
+   {
+     "messages": [
+       { "role": "user", "content": "..." },
+       { "role": "assistant", "content": "..." }
+     ]
+   }
    ```
 4. Automatically splits the dataset into `training/train.jsonl` (90%) and `training/eval.jsonl` (10%).
 
 ### Step 3: 4-bit LoRA Parameter-Efficient Fine-Tuning (`yarn train:lora`)
+
 Instead of retraining billions of base weights (which requires high-end data centers), Sopu AI fine-tunes a **Low-Rank Adaptation (LoRA)** adapter ($\Delta W$). This trains only ~0.5% of parameters while preserving the base model's general reasoning capabilities.
 
 You can run fine-tuning on consumer hardware (MacBook Pro M1/M2/M3/M4 with 16 GB RAM or a PC with an NVIDIA GPU):
@@ -516,13 +558,16 @@ yarn train:lora
 
 > [!TIP]
 > **For Apple Silicon Mac users:** You can also use Apple's native **MLX** framework for lightning-fast training directly on the unified memory GPU:
+>
 > ```bash
 > pip install mlx-lm
 > mlx_lm.lora --model Qwen/Qwen2.5-Coder-7B-Instruct --data ./training/ --train --iters 600 --batch-size 2 --lora-layers 16
 > ```
 
 ### Step 4: Link the Trained Adapter in `modelfiles/`
+
 Once the LoRA adapter is exported to GGUF (`training/output/sopu-coder-lora.gguf`):
+
 1. In [`modelfiles/Modelfile.sopu-coder`](modelfiles/Modelfile.sopu-coder), reference the new adapter:
    ```dockerfile
    FROM qwen2.5-coder:7b
@@ -541,26 +586,35 @@ Once the LoRA adapter is exported to GGUF (`training/output/sopu-coder-lora.gguf
 To ensure that **everyone who uses the application gets the newly trained model**:
 
 #### Method A: Ollama Hub (Recommended - Instant 1-Command Sync)
+
 Push your trained model to the official Ollama registry under your namespace:
+
 ```bash
 # Tag and push your trained model
 ollama cp sopu-coder your-team/sopu-coder
 ollama push your-team/sopu-coder
 ```
+
 When new users download ForgeAI or existing users open the app, setting:
+
 ```bash
 FORGEAI_OLLAMA_MODEL=your-team/sopu-coder
 ```
+
 or selecting it in **Models → Add Model** will download and run your trained model with zero compilation required!
 
 #### Method B: GitHub Releases (Lightweight GGUF Adapter)
+
 Because LoRA adapters are small (typically only **20 MB – 80 MB** compared to 5 GB base weights):
+
 1. Upload `sopu-coder-lora.gguf` as an asset to a GitHub Release.
 2. Update `scripts/setup-models.sh` to download the adapter during setup.
 3. Every teammate running `./scripts/setup-models.sh` automatically compiles the customized, trained model.
 
 #### Method C: Team Continuous Federated Training
+
 For teams or organizations:
+
 1. Team members periodically run `yarn export-data`.
 2. Anonymized `.jsonl` files are pushed to an internal repository or S3/GCS bucket.
 3. A scheduled CI workflow (or GPU runner) fine-tunes the weekly checkpoint, updates `Modelfile.sopu-coder`, and pushes the new revision to the internal Ollama server or Ollama Hub.
@@ -572,6 +626,7 @@ For teams or organizations:
 ForgeAI is fully cross-platform with first-class support for both macOS (Apple Silicon & Intel) and Windows 10/11 (x64 and arm64).
 
 ### Key Windows Engineering Fixes
+
 1. **Loopback IPv4 Normalization (Fixes Windows `fetch failed`):**
    - On Windows, Node.js / Undici resolves `localhost` to IPv6 `::1` by default. Because Ollama for Windows listens exclusively on IPv4 `127.0.0.1:11434`, standard fetch calls would fail with `ECONNREFUSED` / `fetch failed`.
    - ForgeAI automatically normalizes `localhost` to `127.0.0.1` on `win32` and implements an automatic dual-stack fallback in `packages/ai/src/http.ts`, guaranteeing instant connectivity.
@@ -674,28 +729,28 @@ archive so its N-API prebuild loads at runtime.
 
 ForgeAI supports standard VS Code / JetBrains / Sublime style keybindings across macOS and Windows:
 
-| Action | macOS | Windows / Linux |
-| :--- | :--- | :--- |
-| **Command Palette** | `⌘⇧P` | `Ctrl+Shift+P` |
-| **Quick Open File** | `⌘P` / `⌘O` | `Ctrl+P` / `Ctrl+O` |
-| **Inline AI Edit (Diff Preview)** | `⌘K` | `Ctrl+K` |
-| **Start Coding Agent** | `⌘⇧↵` | `Ctrl+Shift+Enter` |
-| **Toggle AI Assistant Panel** | `⌘⌥B` | `Ctrl+Alt+B` |
-| **Toggle File Explorer** | `⌘⇧E` | `Ctrl+Shift+E` |
-| **Global Text Search** | `⌘⇧F` | `Ctrl+Shift+F` |
-| **Toggle Source Control (Git)** | `⌘⇧G` | `Ctrl+Shift+G` |
-| **Toggle Built-in Terminal** | `⌃\`` / `⌘J` | `Ctrl+\`` / `Ctrl+J` |
-| **Toggle Problems Panel** | `⌘⇧M` | `Ctrl+Shift+M` |
-| **Save Active File** | `⌘S` | `Ctrl+S` |
-| **Close Tab** | `⌘W` | `Ctrl+W` |
-| **New File** | `⌘N` | `Ctrl+N` |
-| **Find in Active Editor** | `⌘F` | `Ctrl+F` |
-| **Find & Replace in Editor** | `⌘⌥F` | `Ctrl+H` |
-| **Go to Line Number** | `⌃G` | `Ctrl+G` |
-| **Toggle Line Comment** | `⌘/` | `Ctrl+/` |
-| **Toggle Block Comment** | `⌥⇧A` | `Shift+Alt+A` |
-| **Format Document** | `⌥⇧F` | `Shift+Alt+F` |
-| **Open Settings & Keybindings** | `⌘,` / `⌘K ⌘S` | `Ctrl+,` / `Ctrl+K Ctrl+S` |
+| Action                            | macOS          | Windows / Linux            |
+| :-------------------------------- | :------------- | :------------------------- |
+| **Command Palette**               | `⌘⇧P`          | `Ctrl+Shift+P`             |
+| **Quick Open File**               | `⌘P` / `⌘O`    | `Ctrl+P` / `Ctrl+O`        |
+| **Inline AI Edit (Diff Preview)** | `⌘K`           | `Ctrl+K`                   |
+| **Start Coding Agent**            | `⌘⇧↵`          | `Ctrl+Shift+Enter`         |
+| **Toggle AI Assistant Panel**     | `⌘⌥B`          | `Ctrl+Alt+B`               |
+| **Toggle File Explorer**          | `⌘⇧E`          | `Ctrl+Shift+E`             |
+| **Global Text Search**            | `⌘⇧F`          | `Ctrl+Shift+F`             |
+| **Toggle Source Control (Git)**   | `⌘⇧G`          | `Ctrl+Shift+G`             |
+| **Toggle Built-in Terminal**      | `⌃\`` / `⌘J`   | `Ctrl+\`` / `Ctrl+J`       |
+| **Toggle Problems Panel**         | `⌘⇧M`          | `Ctrl+Shift+M`             |
+| **Save Active File**              | `⌘S`           | `Ctrl+S`                   |
+| **Close Tab**                     | `⌘W`           | `Ctrl+W`                   |
+| **New File**                      | `⌘N`           | `Ctrl+N`                   |
+| **Find in Active Editor**         | `⌘F`           | `Ctrl+F`                   |
+| **Find & Replace in Editor**      | `⌘⌥F`          | `Ctrl+H`                   |
+| **Go to Line Number**             | `⌃G`           | `Ctrl+G`                   |
+| **Toggle Line Comment**           | `⌘/`           | `Ctrl+/`                   |
+| **Toggle Block Comment**          | `⌥⇧A`          | `Shift+Alt+A`              |
+| **Format Document**               | `⌥⇧F`          | `Shift+Alt+F`              |
+| **Open Settings & Keybindings**   | `⌘,` / `⌘K ⌘S` | `Ctrl+,` / `Ctrl+K Ctrl+S` |
 
 ---
 
@@ -751,20 +806,20 @@ sopu-agent-ai/
 
 ### Useful CLI Scripts
 
-| Command                     | What it does                                                 |
-| --------------------------- | ------------------------------------------------------------ |
+| Command                     | What it does                                                                |
+| --------------------------- | --------------------------------------------------------------------------- |
 | `yarn export-data`          | Extracts clean training pairs from `forgeai.db` into `training/train.jsonl` |
-| `yarn train:lora`           | Runs 4-bit LoRA fine-tuning on harvested coding interactions |
-| `./scripts/setup-models.sh` | Pulls base weights and creates custom Sopu AI models         |
-| `yarn dev`                  | Run from source with hot module reloading                    |
-| `yarn build`                | Build main, preload and renderer for production              |
-| `yarn clean`                | Delete `out/`, `dist/` and Vite caches                       |
-| `yarn start`                | Preview the production build in Electron                     |
-| `yarn typecheck`            | Strict TypeScript type checking across all workspaces        |
-| `yarn test`                 | Run Vitest test suite                                        |
-| `yarn smoke`                | Headless UI smoke test                                       |
-| `yarn dist:mac`             | Clean build + macOS DMG and ZIP (arm64, x64)                 |
-| `yarn dist:win`             | Clean build + Windows NSIS installer and portable exe        |
+| `yarn train:lora`           | Runs 4-bit LoRA fine-tuning on harvested coding interactions                |
+| `./scripts/setup-models.sh` | Pulls base weights and creates custom Sopu AI models                        |
+| `yarn dev`                  | Run from source with hot module reloading                                   |
+| `yarn build`                | Build main, preload and renderer for production                             |
+| `yarn clean`                | Delete `out/`, `dist/` and Vite caches                                      |
+| `yarn start`                | Preview the production build in Electron                                    |
+| `yarn typecheck`            | Strict TypeScript type checking across all workspaces                       |
+| `yarn test`                 | Run Vitest test suite                                                       |
+| `yarn smoke`                | Headless UI smoke test                                                      |
+| `yarn dist:mac`             | Clean build + macOS DMG and ZIP (arm64, x64)                                |
+| `yarn dist:win`             | Clean build + Windows NSIS installer and portable exe                       |
 
 ---
 

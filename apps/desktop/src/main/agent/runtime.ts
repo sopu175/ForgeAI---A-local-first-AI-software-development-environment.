@@ -145,9 +145,7 @@ export class AgentRuntimeService {
       if (!modelInfo) {
         binding = await this.providers.resolveRole('coding');
         provider = this.providers.build(binding.providerId);
-        modelInfo = allModels.find(
-          (model) => model.id === binding?.model && model.providerId === binding?.providerId,
-        );
+        modelInfo = allModels.find((model) => model.id === binding?.model && model.providerId === binding?.providerId);
       }
       if (modelInfo?.capabilities.embedding)
         throw new Error('Embedding models cannot run agents. Select a chat/coding model.');
@@ -169,7 +167,9 @@ export class AgentRuntimeService {
         this.search.files('', 300).catch(() => []),
       ]);
 
-      const retrievalResults = await this.indexer.search(request.projectId, request.task, 6, request.contextFiles ?? []).catch(() => []);
+      const retrievalResults = await this.indexer
+        .search(request.projectId, request.task, 6, request.contextFiles ?? [])
+        .catch(() => []);
       const retrieval = packRetrievalResults(retrievalResults, 3000, 6);
       const activeFiles: Array<{ path: string; content: string }> = [];
       for (const relative of (request.contextFiles ?? []).slice(0, 4)) {
@@ -182,9 +182,10 @@ export class AgentRuntimeService {
       }
 
       const projectMemories = this.db.listProjectMemory(request.projectId);
-      const memoryContext = projectMemories.length > 0
-        ? projectMemories.map((m) => `[${m.kind.toUpperCase()}] ${m.title}: ${m.content}`).join('\n')
-        : undefined;
+      const memoryContext =
+        projectMemories.length > 0
+          ? projectMemories.map((m) => `[${m.kind.toUpperCase()}] ${m.title}: ${m.content}`).join('\n')
+          : undefined;
 
       const systemPrompt = buildSystemPrompt({
         agent,

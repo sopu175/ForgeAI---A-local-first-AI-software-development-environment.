@@ -11,10 +11,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: [
-      'tests/**/*.test.ts',
-      'packages/*/src/**/*.test.ts',
-    ],
+    include: ['tests/**/*.test.ts', 'packages/*/src/**/*.test.ts'],
     reporters: 'default',
   },
 });

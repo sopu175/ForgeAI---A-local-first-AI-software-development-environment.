@@ -70,7 +70,8 @@ describe('HeuristicParser — Python', () => {
 
 describe('HeuristicParser — Go', () => {
   it('extracts functions and types', () => {
-    const src = 'type User struct { ID int }\nfunc (u *User) Save() error { return nil }\nfunc NewUser() *User { return &User{} }\n';
+    const src =
+      'type User struct { ID int }\nfunc (u *User) Save() error { return nil }\nfunc NewUser() *User { return &User{} }\n';
     const symbols = defaultParser.extractSymbols('main.go', src);
     expect(names(symbols)).toContain('User');
     expect(names(symbols)).toContain('Save');
@@ -91,7 +92,8 @@ describe('HeuristicParser — Go', () => {
 
 describe('HeuristicParser — Rust', () => {
   it('extracts structs, enums, traits and functions', () => {
-    const src = 'pub struct Config { pub port: u16 }\npub enum State { Active, Idle }\npub trait Handler { fn handle(&self); }\npub fn run() {}\n';
+    const src =
+      'pub struct Config { pub port: u16 }\npub enum State { Active, Idle }\npub trait Handler { fn handle(&self); }\npub fn run() {}\n';
     const symbols = defaultParser.extractSymbols('lib.rs', src);
     expect(names(symbols)).toContain('Config');
     expect(names(symbols)).toContain('State');

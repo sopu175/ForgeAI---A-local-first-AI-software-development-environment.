@@ -345,9 +345,7 @@ export function ModelsModal() {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5 truncate text-[12.5px] font-medium text-fg-strong">
                               <span>{shortModelName(model.id)}</span>
-                              {isSopu ? (
-                                <span className="chip chip-success text-[9.5px]">Sopu AI Custom</span>
-                              ) : null}
+                              {isSopu ? <span className="chip chip-success text-[9.5px]">Sopu AI Custom</span> : null}
                             </div>
                             <div className="mt-0.5 text-[10.5px] text-faint">
                               {providers.find((provider) => provider.id === model.providerId)?.name ?? model.providerId}
@@ -441,9 +439,7 @@ export function ModelsModal() {
                     <span className="text-[11.5px] font-medium text-fg">sopu-coder (Primary Trained Coder)</span>
                     <span className="chip chip-success">Custom Recipe</span>
                     <span className="chip">~4.7 GB</span>
-                    {installed.some(
-                      (model) => model.id.replace(/:latest$/, '') === 'sopu-coder',
-                    ) ? (
+                    {installed.some((model) => model.id.replace(/:latest$/, '') === 'sopu-coder') ? (
                       <span className="chip chip-success">installed & active</span>
                     ) : (
                       <button
@@ -499,10 +495,23 @@ export function ModelsModal() {
                 <Sparkles size={13} className="text-accent" /> Free Cloud Models &amp; Claude Access
               </p>
               <ul className="list-disc pl-4 space-y-1 text-faint text-[10.5px]">
-                <li><strong className="text-fg">OpenRouter (Free tier &amp; Claude)</strong>: Connect to access Claude 3.5 Sonnet, Claude 3.5 Haiku, and free <code className="text-fg font-mono">:free</code> models (DeepSeek R1/V3, Llama 3.3 70B, Qwen 2.5 72B). Get an API key at <span className="text-accent underline">openrouter.ai</span>.</li>
-                <li><strong className="text-fg">Groq Cloud (100% Free)</strong>: Blazing fast (500+ tok/s) Llama 3.3 70B and Qwen 2.5 Coder. Free API key at <span className="text-accent underline">console.groq.com</span>.</li>
-                <li><strong className="text-fg">Google Gemini (Free 15 RPM)</strong>: Gemini 2.0 Flash with 1M context. Free API key at <span className="text-accent underline">aistudio.google.com</span>.</li>
-                <li><strong className="text-fg">Ollama Local</strong>: Completely free, offline, and private on your Mac.</li>
+                <li>
+                  <strong className="text-fg">OpenRouter (Free tier &amp; Claude)</strong>: Connect to access Claude 3.5
+                  Sonnet, Claude 3.5 Haiku, and free <code className="text-fg font-mono">:free</code> models (DeepSeek
+                  R1/V3, Llama 3.3 70B, Qwen 2.5 72B). Get an API key at{' '}
+                  <span className="text-accent underline">openrouter.ai</span>.
+                </li>
+                <li>
+                  <strong className="text-fg">Groq Cloud (100% Free)</strong>: Blazing fast (500+ tok/s) Llama 3.3 70B
+                  and Qwen 2.5 Coder. Free API key at <span className="text-accent underline">console.groq.com</span>.
+                </li>
+                <li>
+                  <strong className="text-fg">Google Gemini (Free 15 RPM)</strong>: Gemini 2.0 Flash with 1M context.
+                  Free API key at <span className="text-accent underline">aistudio.google.com</span>.
+                </li>
+                <li>
+                  <strong className="text-fg">Ollama Local</strong>: Completely free, offline, and private on your Mac.
+                </li>
               </ul>
             </div>
 
@@ -779,8 +788,10 @@ export function ModelsModal() {
             <div className="flex items-start gap-2 rounded-md border border-line-soft bg-panel p-3 text-[11px] text-muted">
               <Info size={13} className="mt-0.5 shrink-0 text-cyan" />
               <span>
-                Recommended: <span className="mono text-fg">sopu-coder</span> for coding, chat, planning, and review, and <span className="mono text-fg">sopu-coder-fast</span> for completions. Embeddings are optional — pull an embedding model only if you want
-                vector search; otherwise retrieval uses fast keyword ranking. Role choices are saved locally.
+                Recommended: <span className="mono text-fg">sopu-coder</span> for coding, chat, planning, and review,
+                and <span className="mono text-fg">sopu-coder-fast</span> for completions. Embeddings are optional —
+                pull an embedding model only if you want vector search; otherwise retrieval uses fast keyword ranking.
+                Role choices are saved locally.
               </span>
             </div>
           </div>

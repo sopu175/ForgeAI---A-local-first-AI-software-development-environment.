@@ -46,7 +46,9 @@ export function useWidget(props: WidgetProps) {
     const parseDurationMs = parseEnd - parseStart;
     const docsPerSec = ((iterations / parseDurationMs) * 1000).toFixed(1);
 
-    console.log(`[PERF: CHUNKING/PARSING] ${iterations} docs in ${parseDurationMs.toFixed(2)}ms (${docsPerSec} docs/sec)`);
+    console.log(
+      `[PERF: CHUNKING/PARSING] ${iterations} docs in ${parseDurationMs.toFixed(2)}ms (${docsPerSec} docs/sec)`,
+    );
     expect(Number(docsPerSec)).toBeGreaterThan(10);
     expect(totalChunks).toBeGreaterThan(0);
     expect(totalSymbols).toBeGreaterThan(0);
@@ -72,7 +74,9 @@ export function useWidget(props: WidgetProps) {
     const vecDurationMs = vecEnd - vecStart;
     const opsPerSec = ((NUM_VECTORS / vecDurationMs) * 1000).toFixed(0);
 
-    console.log(`[PERF: VECTOR DOT PRODUCTS] ${NUM_VECTORS} vectors (dim=${VECTOR_DIM}) in ${vecDurationMs.toFixed(2)}ms (${opsPerSec} ops/sec)`);
+    console.log(
+      `[PERF: VECTOR DOT PRODUCTS] ${NUM_VECTORS} vectors (dim=${VECTOR_DIM}) in ${vecDurationMs.toFixed(2)}ms (${opsPerSec} ops/sec)`,
+    );
     expect(top10).toHaveLength(10);
     expect(Number(opsPerSec)).toBeGreaterThan(10_000);
   });
@@ -93,7 +97,9 @@ export function useWidget(props: WidgetProps) {
     const packEnd = performance.now();
     const latencyMs = packEnd - packStart;
 
-    console.log(`[PERF: CONTEXT PACKING] Latency: ${latencyMs.toFixed(3)}ms, packed tokens: ${estimateTokens(packed)} (budget: ${TOKEN_BUDGET})`);
+    console.log(
+      `[PERF: CONTEXT PACKING] Latency: ${latencyMs.toFixed(3)}ms, packed tokens: ${estimateTokens(packed)} (budget: ${TOKEN_BUDGET})`,
+    );
     expect(latencyMs).toBeLessThan(50);
     expect(estimateTokens(packed)).toBeLessThanOrEqual(TOKEN_BUDGET);
   });

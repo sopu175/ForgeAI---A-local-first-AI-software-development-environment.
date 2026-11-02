@@ -434,16 +434,7 @@ export interface PermissionResponse {
 }
 
 export type AgentKind =
-  | 'coding'
-  | 'planner'
-  | 'frontend'
-  | 'animation'
-  | 'backend'
-  | 'debugging'
-  | 'testing'
-  | 'review'
-  | 'docs'
-  | 'seo';
+  'coding' | 'planner' | 'frontend' | 'animation' | 'backend' | 'debugging' | 'testing' | 'review' | 'docs' | 'seo';
 
 export interface AgentRunRequest {
   projectId: string;

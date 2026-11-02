@@ -260,48 +260,48 @@ export class OllamaProvider implements AIProvider {
       let tokensPerSecond: number | undefined;
 
       for await (const line of iterateLines(response, activity)) {
-      let chunk: OllamaChatChunk;
-      try {
-        chunk = JSON.parse(line) as OllamaChatChunk;
-      } catch {
-        continue;
-      }
-      const message = chunk.message;
-      if (message?.thinking) yield { type: 'reasoning', text: message.thinking };
-      if (message?.content) yield { type: 'text', text: message.content };
-      if (message?.tool_calls) {
-        for (const call of message.tool_calls) {
-          const name = call.function?.name;
-          if (!name) continue;
-          const args = parseArguments(call.function?.arguments);
-          const key = `${name}:${JSON.stringify(args)}`;
-          if (emittedCalls.has(key)) continue;
-          emittedCalls.add(key);
-          yield {
-            type: 'tool_call',
-            call: { id: call.id || makeToolCallId(), name, arguments: args },
-          };
+        let chunk: OllamaChatChunk;
+        try {
+          chunk = JSON.parse(line) as OllamaChatChunk;
+        } catch {
+          continue;
+        }
+        const message = chunk.message;
+        if (message?.thinking) yield { type: 'reasoning', text: message.thinking };
+        if (message?.content) yield { type: 'text', text: message.content };
+        if (message?.tool_calls) {
+          for (const call of message.tool_calls) {
+            const name = call.function?.name;
+            if (!name) continue;
+            const args = parseArguments(call.function?.arguments);
+            const key = `${name}:${JSON.stringify(args)}`;
+            if (emittedCalls.has(key)) continue;
+            emittedCalls.add(key);
+            yield {
+              type: 'tool_call',
+              call: { id: call.id || makeToolCallId(), name, arguments: args },
+            };
+          }
+        }
+        if (chunk.prompt_eval_count) promptTokens = chunk.prompt_eval_count;
+        if (chunk.eval_count) outputTokens = chunk.eval_count;
+        if (chunk.eval_count && chunk.eval_duration) {
+          tokensPerSecond = chunk.eval_count / (chunk.eval_duration / 1e9);
+        }
+        if (chunk.done) {
+          if (promptTokens || outputTokens) {
+            yield { type: 'usage', promptTokens, outputTokens, tokensPerSecond };
+          }
+          yield { type: 'done', stopReason: chunk.done_reason };
+          return;
         }
       }
-      if (chunk.prompt_eval_count) promptTokens = chunk.prompt_eval_count;
-      if (chunk.eval_count) outputTokens = chunk.eval_count;
-      if (chunk.eval_count && chunk.eval_duration) {
-        tokensPerSecond = chunk.eval_count / (chunk.eval_duration / 1e9);
-      }
-      if (chunk.done) {
-        if (promptTokens || outputTokens) {
-          yield { type: 'usage', promptTokens, outputTokens, tokensPerSecond };
-        }
-        yield { type: 'done', stopReason: chunk.done_reason };
-        return;
-      }
+      if (promptTokens || outputTokens) yield { type: 'usage', promptTokens, outputTokens, tokensPerSecond };
+      yield { type: 'done' };
+    } finally {
+      activity.done();
     }
-    if (promptTokens || outputTokens) yield { type: 'usage', promptTokens, outputTokens, tokensPerSecond };
-    yield { type: 'done' };
-  } finally {
-    activity.done();
   }
-}
 
   async embed(request: EmbedRequest, signal: AbortSignal): Promise<EmbedResponse> {
     const response = await safeFetch(this.url('/api/embed'), {

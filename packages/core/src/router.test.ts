@@ -43,7 +43,10 @@ describe('ModelRouter', () => {
       frontend: { providerId: 'ollama', model: 'sopu-coder' },
       plan: { providerId: 'ollama', model: 'deepseek-r1:14b' },
     };
-    const router = new ModelRouter(() => MOCK_MODELS, () => roles);
+    const router = new ModelRouter(
+      () => MOCK_MODELS,
+      () => roles,
+    );
 
     const decision = router.route({ task: 'frontend' });
     expect(decision.binding.model).toBe('sopu-coder');
@@ -55,7 +58,10 @@ describe('ModelRouter', () => {
     const roles: Partial<Record<ModelRole, RoleBinding>> = {
       coding: { providerId: 'ollama', model: 'sopu-coder' },
     };
-    const router = new ModelRouter(() => MOCK_MODELS, () => roles);
+    const router = new ModelRouter(
+      () => MOCK_MODELS,
+      () => roles,
+    );
 
     const decision = router.route({
       task: 'coding',
@@ -70,7 +76,10 @@ describe('ModelRouter', () => {
     const roles: Partial<Record<ModelRole, RoleBinding>> = {
       coding: { providerId: 'ollama', model: 'sopu-coder' },
     };
-    const router = new ModelRouter(() => MOCK_MODELS, () => roles);
+    const router = new ModelRouter(
+      () => MOCK_MODELS,
+      () => roles,
+    );
 
     const decision = router.route({ task: 'animation' });
     expect(decision.binding.model).toBe('sopu-coder');
@@ -82,7 +91,10 @@ describe('ModelRouter', () => {
     const roles: Partial<Record<ModelRole, RoleBinding>> = {
       coding: { providerId: 'ollama', model: 'sopu-coder-fast' }, // lacking tools
     };
-    const router = new ModelRouter(() => MOCK_MODELS, () => roles);
+    const router = new ModelRouter(
+      () => MOCK_MODELS,
+      () => roles,
+    );
 
     const decision = router.route({
       task: 'coding',
@@ -97,7 +109,10 @@ describe('ModelRouter', () => {
     const roles: Partial<Record<ModelRole, RoleBinding>> = {
       embedding: { providerId: 'ollama', model: 'nomic-embed-text' },
     };
-    const router = new ModelRouter(() => MOCK_MODELS, () => roles);
+    const router = new ModelRouter(
+      () => MOCK_MODELS,
+      () => roles,
+    );
 
     const decision = router.route({ task: 'embedding' });
     expect(decision.binding.model).toBe('nomic-embed-text');
@@ -105,7 +120,10 @@ describe('ModelRouter', () => {
   });
 
   it('throws a helpful diagnostic error when no compatible model exists', () => {
-    const router = new ModelRouter(() => [], () => ({}));
+    const router = new ModelRouter(
+      () => [],
+      () => ({}),
+    );
     expect(() => router.route({ task: 'coding' })).toThrowError(/No available model found/);
   });
 });

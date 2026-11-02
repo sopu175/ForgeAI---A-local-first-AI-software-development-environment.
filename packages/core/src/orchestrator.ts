@@ -25,8 +25,7 @@ export function planWorkflow(goal: string, contextSummary?: string): WorkflowPla
 
   // 1. Planning phase for complex multi-step requests
   const isComplex =
-    /refactor|redesign|implement|architecture|migration|full-stack|full stack|system/i.test(lower) ||
-    goal.length > 80;
+    /refactor|redesign|implement|architecture|migration|full-stack|full stack|system/i.test(lower) || goal.length > 80;
 
   if (isComplex) {
     steps.push({
@@ -39,7 +38,8 @@ export function planWorkflow(goal: string, contextSummary?: string): WorkflowPla
 
   // 2. Determine specialist implementation agent(s)
   const isAnimation = /animation|motion|gsap|three\.?js|framer|canvas|transition|scrolltrigger/i.test(lower);
-  const isFrontend = isAnimation || /ui|frontend|react|next|component|page|layout|css|tailwind|html|button|modal/i.test(lower);
+  const isFrontend =
+    isAnimation || /ui|frontend|react|next|component|page|layout|css|tailwind|html|button|modal/i.test(lower);
   const isBackend = /backend|api|database|sql|sqlite|postgres|auth|route|endpoint|server/i.test(lower);
   const isSEO = /seo|metadata|sitemap|robots|canonical|open graph|og:|twitter card|meta description/i.test(lower);
 
@@ -165,4 +165,3 @@ export class MultiAgentOrchestrator {
     this.plan.status = 'failed';
   }
 }
-

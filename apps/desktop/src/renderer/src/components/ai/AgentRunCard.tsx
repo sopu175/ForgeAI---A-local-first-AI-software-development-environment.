@@ -182,7 +182,9 @@ export function AgentRunCard({
                 {run.report.cancelled ? 'cancelled' : 'completed'} · {formatDuration(run.report.durationMs)}
               </span>
             </div>
-            <Markdown className="mt-2 text-[11px] leading-relaxed">{run.report.summary || '_No summary provided._'}</Markdown>
+            <Markdown className="mt-2 text-[11px] leading-relaxed">
+              {run.report.summary || '_No summary provided._'}
+            </Markdown>
             {run.report.filesChanged.length > 0 ? (
               <div className="mt-2.5">
                 <p className="text-[9px] font-semibold uppercase tracking-wider text-faint">Files changed</p>
@@ -482,9 +484,7 @@ function ActionCard({
               <pre
                 className={cn(
                   'max-h-[180px] overflow-auto whitespace-pre-wrap rounded-md p-2 font-mono text-[9.5px] leading-relaxed border',
-                  result.ok
-                    ? 'bg-panel-3/80 text-muted border-line-soft'
-                    : 'bg-danger/8 text-danger border-danger/25',
+                  result.ok ? 'bg-panel-3/80 text-muted border-line-soft' : 'bg-danger/8 text-danger border-danger/25',
                 )}
               >
                 {result.preview || (result.ok ? 'Action completed successfully.' : 'No output recorded.')}
@@ -574,9 +574,7 @@ export function AgentTimeline({
       } else if (event.type === 'tool_result') {
         const s = ensureStep();
         // Match by callId if available, or attach to the most recent call
-        const action =
-          s.actions.find((a) => a.call.id === event.callId) ??
-          s.actions[s.actions.length - 1];
+        const action = s.actions.find((a) => a.call.id === event.callId) ?? s.actions[s.actions.length - 1];
         if (action) {
           action.result = { ok: event.ok, preview: event.preview };
         } else {
@@ -629,10 +627,7 @@ export function AgentTimeline({
 
       {/* Render Steps */}
       {structured.steps.map((stepData) => (
-        <div
-          key={`step-${stepData.step}`}
-          className="rounded-lg border border-line-soft/80 bg-panel-1 p-2 space-y-2"
-        >
+        <div key={`step-${stepData.step}`} className="rounded-lg border border-line-soft/80 bg-panel-1 p-2 space-y-2">
           {/* Step header with token metrics */}
           <div className="flex items-center justify-between text-[10px]">
             <div className="flex items-center gap-1.5 font-medium text-fg">

@@ -10,7 +10,7 @@ if (typeof process !== 'undefined') {
       undici.setGlobalDispatcher(
         new undici.Agent({
           headersTimeout: 0, // Disable header timeout waiting for local model generation
-          bodyTimeout: 0,    // Disable body timeout for streaming responses
+          bodyTimeout: 0, // Disable body timeout for streaming responses
           connectTimeout: 60_000,
         }),
       );

@@ -135,7 +135,13 @@ export interface ProvidersApi {
   running(): Promise<RunningModel[]>;
   route(request: {
     task: string;
-    requiredCapabilities?: { tools?: boolean; streaming?: boolean; embedding?: boolean; vision?: boolean; thinking?: boolean };
+    requiredCapabilities?: {
+      tools?: boolean;
+      streaming?: boolean;
+      embedding?: boolean;
+      vision?: boolean;
+      thinking?: boolean;
+    };
     userOverride?: RoleBinding;
   }): Promise<{ binding: RoleBinding; reason: string; fallbackUsed: boolean; model: ModelInfo }>;
 }

@@ -105,10 +105,7 @@ async function collectChat(
 
   const resetTimer = () => {
     if (timer) clearTimeout(timer);
-    timer = setTimeout(
-      () => controller.abort(new Error('The model did not answer in time')),
-      180_000,
-    );
+    timer = setTimeout(() => controller.abort(new Error('The model did not answer in time')), 180_000);
     timer.unref?.();
   };
 
@@ -456,7 +453,8 @@ export function registerIpc(ctx: AppContext): () => void {
       model?: string;
     };
     const action = str(args.action, 'action');
-    if (!['explain', 'refactor', 'tests', 'docs', 'animation'].includes(action)) throw new Error('Unknown quick edit action');
+    if (!['explain', 'refactor', 'tests', 'docs', 'animation'].includes(action))
+      throw new Error('Unknown quick edit action');
     if (!args.code?.trim()) throw new Error('Select some code first');
     const binding = await ctx.providers.resolveChat({ providerId: args.providerId, model: args.model });
     const providerConfig = ctx.providers.list().find((item) => item.id === binding.providerId);
@@ -748,10 +746,7 @@ export function registerIpc(ctx: AppContext): () => void {
 
   // ── Project Memory & Decisions ──────────────────────────────────────────
   handle('memory:list', (projectId: unknown, kind: unknown) =>
-    ctx.db.listProjectMemory(
-      requireProject(ctx, projectId),
-      typeof kind === 'string' ? kind : undefined,
-    ),
+    ctx.db.listProjectMemory(requireProject(ctx, projectId), typeof kind === 'string' ? kind : undefined),
   );
   handle('memory:save', (input: unknown) => {
     const raw = (input ?? {}) as any;

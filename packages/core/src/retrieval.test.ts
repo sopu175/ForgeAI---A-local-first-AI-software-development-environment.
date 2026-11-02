@@ -40,7 +40,13 @@ describe('tokenize', () => {
 
 describe('rankByKeywords', () => {
   const candidates = [
-    { chunkId: 1, path: 'src/auth/login.ts', startLine: 1, endLine: 20, content: 'function loginUser(email, password)' },
+    {
+      chunkId: 1,
+      path: 'src/auth/login.ts',
+      startLine: 1,
+      endLine: 20,
+      content: 'function loginUser(email, password)',
+    },
     { chunkId: 2, path: 'src/api/routes.ts', startLine: 1, endLine: 10, content: 'router.get("/health", healthCheck)' },
     { chunkId: 3, path: 'src/auth/token.ts', startLine: 1, endLine: 15, content: 'function generateToken(userId)' },
   ];
@@ -86,9 +92,9 @@ describe('rankByVector', () => {
   it('returns the closest vector', () => {
     const query = normalizeVector([1, 0, 0]);
     const candidates = [
-      makeCandidate(1, [1, 0, 0]),   // identical
-      makeCandidate(2, [0, 1, 0]),   // orthogonal
-      makeCandidate(3, [-1, 0, 0]),  // opposite
+      makeCandidate(1, [1, 0, 0]), // identical
+      makeCandidate(2, [0, 1, 0]), // orthogonal
+      makeCandidate(3, [-1, 0, 0]), // opposite
     ];
     const results = rankByVector(query, candidates, 3);
     expect(results[0]!.path).toBe('chunk1.ts');
@@ -103,7 +109,14 @@ describe('rankByVector', () => {
 
   it('skips candidates with mismatched dimensions', () => {
     const query = normalizeVector([1, 0, 0]);
-    const candidate = { chunkId: 1, path: 'x.ts', startLine: 1, endLine: 1, content: '', vector: normalizeVector([1, 0]) };
+    const candidate = {
+      chunkId: 1,
+      path: 'x.ts',
+      startLine: 1,
+      endLine: 1,
+      content: '',
+      vector: normalizeVector([1, 0]),
+    };
     const results = rankByVector(query, [candidate], 5);
     expect(results).toHaveLength(0);
   });

@@ -122,7 +122,9 @@ export function QuickEditDialog() {
               onClick={applyQuickEditResult}
               disabled={!quickEdit.result || quickEdit.loading}
             >
-              {quickEdit.action === 'refactor' || quickEdit.action === 'animation' ? 'Apply replacement' : 'Insert at cursor'}
+              {quickEdit.action === 'refactor' || quickEdit.action === 'animation'
+                ? 'Apply replacement'
+                : 'Insert at cursor'}
             </button>
           ) : null}
         </div>

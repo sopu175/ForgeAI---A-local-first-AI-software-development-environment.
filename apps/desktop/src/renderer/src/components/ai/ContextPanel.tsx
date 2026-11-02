@@ -320,7 +320,11 @@ export function ContextPanel() {
                       className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
                       title={mem.title}
                     >
-                      {open ? <ChevronDown size={9} className="text-faint" /> : <ChevronRight size={9} className="text-faint" />}
+                      {open ? (
+                        <ChevronDown size={9} className="text-faint" />
+                      ) : (
+                        <ChevronRight size={9} className="text-faint" />
+                      )}
                       <Brain size={10} className="shrink-0 text-accent" />
                       <span className="min-w-0 flex-1 truncate text-[10px] text-fg">{mem.title}</span>
                       <span className="shrink-0 text-[8.5px] uppercase text-faint">{mem.kind}</span>

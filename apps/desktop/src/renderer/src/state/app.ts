@@ -472,7 +472,10 @@ export const useAppStore = create<AppState>()((set, get) => ({
         current && models.some((model) => model.id === current.model && model.providerId === current.providerId);
       const chatExists =
         settings?.modelRoles.chat &&
-        models.some((model) => model.id === settings.modelRoles.chat?.model && model.providerId === settings.modelRoles.chat?.providerId);
+        models.some(
+          (model) =>
+            model.id === settings.modelRoles.chat?.model && model.providerId === settings.modelRoles.chat?.providerId,
+        );
 
       const candidate = currentExists
         ? current
@@ -483,14 +486,19 @@ export const useAppStore = create<AppState>()((set, get) => ({
       const validFallback =
         candidate && models.some((m) => m.id === candidate.model && m.providerId === candidate.providerId)
           ? candidate
-          : (models.find((m) => !m.capabilities.embedding)
-              ? { providerId: models.find((m) => !m.capabilities.embedding)!.providerId, model: models.find((m) => !m.capabilities.embedding)!.id }
-              : null);
+          : models.find((m) => !m.capabilities.embedding)
+            ? {
+                providerId: models.find((m) => !m.capabilities.embedding)!.providerId,
+                model: models.find((m) => !m.capabilities.embedding)!.id,
+              }
+            : null;
 
       set({ models, selectedModel: validFallback, providers: await window.forge.providers.list() });
 
       if (validFallback && (!currentExists || !chatExists)) {
-        await get().setSelectedModel(validFallback).catch(() => undefined);
+        await get()
+          .setSelectedModel(validFallback)
+          .catch(() => undefined);
       }
     } catch (error) {
       if (showErrors) get().toast('error', errorMessage(error));
@@ -1341,19 +1349,22 @@ export const useAppStore = create<AppState>()((set, get) => ({
         // If paths is empty (general refresh, e.g. from terminal) or the open tab's file was modified
         if (paths.size === 0 || paths.has(tab.path)) {
           if (tab.content === tab.saved) {
-            void window.forge.workspace.readFile(tab.path).then((file) => {
-              set((current) => ({
-                tabs: current.tabs.map((entry) =>
-                  entry.id === tab.id && entry.content === entry.saved
-                    ? { ...entry, content: file.content, saved: file.content, mtime: file.mtime }
-                    : entry,
-                ),
-              }));
-            }).catch(() => undefined);
+            void window.forge.workspace
+              .readFile(tab.path)
+              .then((file) => {
+                set((current) => ({
+                  tabs: current.tabs.map((entry) =>
+                    entry.id === tab.id && entry.content === entry.saved
+                      ? { ...entry, content: file.content, saved: file.content, mtime: file.mtime }
+                      : entry,
+                  ),
+                }));
+              })
+              .catch(() => undefined);
           }
         }
       }
-    }, 120);  // 120ms — responsive without flooding on large installs
+    }, 120); // 120ms — responsive without flooding on large installs
   },
 
   handleIndexProgress(status) {

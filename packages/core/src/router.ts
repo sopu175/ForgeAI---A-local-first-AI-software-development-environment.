@@ -1,9 +1,4 @@
-import type {
-  ModelCapabilities,
-  ModelInfo,
-  ModelRole,
-  RoleBinding,
-} from '@forgeai/shared';
+import type { ModelCapabilities, ModelInfo, ModelRole, RoleBinding } from '@forgeai/shared';
 
 export type RoutingTask =
   | 'chat'
@@ -95,9 +90,7 @@ export class ModelRouter {
     const primaryRole = TASK_TO_PRIMARY_ROLE[request.task];
     const primaryBinding = bindings[primaryRole];
     if (primaryBinding) {
-      const match = installed.find(
-        (m) => m.providerId === primaryBinding.providerId && m.id === primaryBinding.model,
-      );
+      const match = installed.find((m) => m.providerId === primaryBinding.providerId && m.id === primaryBinding.model);
       if (match && this.satisfies(match, request.requiredCapabilities)) {
         return {
           binding: primaryBinding,
@@ -163,4 +156,3 @@ export class ModelRouter {
     return true;
   }
 }
-

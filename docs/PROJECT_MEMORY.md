@@ -27,6 +27,7 @@ CREATE INDEX IF NOT EXISTS idx_project_memory ON project_memory(project_id, kind
 ```
 
 ### Memory Kinds
+
 - **`convention`**: Coding standards, formatting guidelines, architectural style rules (e.g., "Use Tailwind utility classes and avoid inline CSS").
 - **`decision`**: Confirmed technical decisions (e.g., "Store local data in SQLite; avoid external API dependencies").
 - **`issue`**: Recurring project issues and verified resolutions (e.g., "Windows fetch timeout solved by headersTimeout configuration").
@@ -45,6 +46,7 @@ CREATE INDEX IF NOT EXISTS idx_project_memory ON project_memory(project_id, kind
 ## 4. UI Controls
 
 The **Context Panel** (`ContextPanel.tsx`) contains the dedicated **Project Memory** section:
+
 - **Inspect**: View all stored memories categorized by kind. Expand any entry to view full content, source provenance, and timestamp.
 - **Add**: Create new conventions or decisions with a title, kind dropdown, and content textarea.
 - **Delete**: Remove outdated or superseded memories with a single click.

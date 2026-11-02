@@ -5,6 +5,7 @@
 This security audit reviews and strengthens the defensive boundaries of the ForgeAI desktop application, agent execution engine, IPC channels, and filesystem access layers.
 
 ForgeAI operates as a **local-first AI development environment**. Because AI models can generate shell commands and propose filesystem modifications, the architecture strictly enforces defense-in-depth:
+
 - No automatic execution of destructive commands
 - Workspace path containment and symlink escape checks
 - Subprocess environment variable sanitization
@@ -16,6 +17,7 @@ ForgeAI operates as a **local-first AI development environment**. Because AI mod
 ## 2. Electron Architecture & Process Isolation
 
 The desktop renderer is strictly sandboxed in `apps/desktop/src/main/window.ts`:
+
 - **`contextIsolation: true`**: The renderer execution context is completely isolated from the Node.js main process.
 - **`nodeIntegration: false`**: Direct Node.js access is prohibited inside the renderer.
 - **`sandbox: true`**: Chromium's OS-level sandbox enforces process restrictions.
@@ -33,6 +35,7 @@ The desktop renderer is strictly sandboxed in `apps/desktop/src/main/window.ts`:
 ## 3. Filesystem Path Confinement & Traversal Protection
 
 In `apps/desktop/src/main/services/workspace.ts`:
+
 - **`resolveSafe(relative: string)`**:
   - Rejects traversal attempts (`..` segments).
   - Validates that normalized paths reside strictly within `this.root`.
@@ -45,6 +48,7 @@ In `apps/desktop/src/main/services/workspace.ts`:
 ## 4. Subprocess Execution & Environment Sanitization
 
 In `apps/desktop/src/main/agent/tools.ts`:
+
 - **Subprocess Environment Scrubbing (`sanitizeSubprocessEnv`)**:
   - Developer machines frequently store sensitive tokens in ambient shell environments (`AWS_SECRET_ACCESS_KEY`, `GITHUB_TOKEN`, `OPENAI_API_KEY`, `DATABASE_URL`, `*_PASSWORD`, `*_SECRET`).
   - The agent execution layer scrubs these variables prior to spawning any command or test runner.
@@ -58,6 +62,7 @@ In `apps/desktop/src/main/agent/tools.ts`:
 ## 5. Network Egress & SSRF Protection
 
 In `fetchUrlTool` (`apps/desktop/src/main/agent/tools.ts`):
+
 - Egress requests require network permission approval.
 - **Cloud Metadata & SSRF Defense**:
   - Access to link-local and cloud metadata endpoints (`169.254.169.254`, `169.254.*`, `metadata.google.internal`, `instance-data`) is strictly prohibited.
@@ -68,6 +73,7 @@ In `fetchUrlTool` (`apps/desktop/src/main/agent/tools.ts`):
 ## 6. Secret Exclusion in RAG Indexing
 
 In `packages/core/src/scanner.ts` and `apps/desktop/src/main/services/indexer.ts`:
+
 - Scanner ignores sensitive credential paths (`.env*`, `.pem`, `.key`, `.p12`, `id_rsa*`, `.aws/**`, `.ssh/**`).
 - Secrets and private keys are never chunked, never converted to vector embeddings, and never sent to local or remote LLM models.
 
@@ -76,6 +82,7 @@ In `packages/core/src/scanner.ts` and `apps/desktop/src/main/services/indexer.ts
 ## 7. Automated Security Regression Testing
 
 Security boundaries are verified via `tests/security.test.ts`:
+
 - Subprocess environment sanitization strips API keys and credentials while preserving safe system variables.
 - Secret path exclusion verifies that credentials and certificates are ignored during indexing.
 - 134/134 test cases passing across the entire codebase.

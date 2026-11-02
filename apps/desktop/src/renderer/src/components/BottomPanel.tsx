@@ -1,5 +1,16 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ChevronDown, ChevronRight, Copy, GitBranch, Play, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  GitBranch,
+  Play,
+  RefreshCw,
+  Sparkles,
+  Trash2,
+  X,
+} from 'lucide-react';
 import type { GitLogEntry } from '@forgeai/shared';
 import { useAppStore, type BottomTab } from '../state/app';
 import { errorMessage, relativeTime } from '../lib/format';

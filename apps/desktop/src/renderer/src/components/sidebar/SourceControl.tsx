@@ -57,7 +57,7 @@ export function SourceControl() {
   // reflects the latest state after a terminal command (e.g. yarn install).
   useEffect(() => {
     void refreshGit();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const staged = useMemo(() => git?.files.filter((file) => file.staged) ?? [], [git]);

@@ -7,7 +7,7 @@
 > frontend implementation, advanced animation, backend development, SEO,
 > testing, code review, and documentation.
 
-------------------------------------------------------------------------
+---
 
 ## Product direction
 
@@ -17,20 +17,20 @@ agents collaborate through a controlled orchestration layer.
 
 ### Core product principles
 
--   **Local-first:** Local models and local project workflows should
-    work without requiring a cloud API.
--   **Provider-independent:** Keep model integrations behind the
-    existing provider abstraction.
--   **Specialized agents:** Use role-specific instructions, tools,
-    context, and output contracts.
--   **Project-aware:** Ground AI work in the active repository, project
-    rules, source code, and relevant documentation.
--   **Human-in-the-loop:** Keep user approval for sensitive operations
-    and consequential file or command actions.
--   **Verifiable output:** Distinguish implemented work from work that
-    has actually been tested.
--   **Modular architecture:** Extend existing services instead of
-    creating duplicate subsystems.
+- **Local-first:** Local models and local project workflows should
+  work without requiring a cloud API.
+- **Provider-independent:** Keep model integrations behind the
+  existing provider abstraction.
+- **Specialized agents:** Use role-specific instructions, tools,
+  context, and output contracts.
+- **Project-aware:** Ground AI work in the active repository, project
+  rules, source code, and relevant documentation.
+- **Human-in-the-loop:** Keep user approval for sensitive operations
+  and consequential file or command actions.
+- **Verifiable output:** Distinguish implemented work from work that
+  has actually been tested.
+- **Modular architecture:** Extend existing services instead of
+  creating duplicate subsystems.
 
 ## Specialist agent team
 
@@ -38,45 +38,48 @@ The following are the initial agent roles. They do not need separate
 model weights. Start with role-specific prompts, permissions, context,
 and task contracts; use the Model Router to assign configured models.
 
-  -----------------------------------------------------------------------
-  Agent                               Primary responsibility
-  ----------------------------------- -----------------------------------
-  Planner Agent                       Understand requests, inspect scope,
-                                      and create an ordered task plan
+---
 
-  Frontend Agent                      React, Next.js, UI components,
-                                      responsive layouts, and
-                                      accessibility
+Agent Primary responsibility
 
-  Animation Agent                     GSAP, Three.js, Framer Motion,
-                                      CSS/SVG motion, interactions, and
-                                      animation performance
+---
 
-  Backend Agent                       APIs, server-side logic,
-                                      authentication, databases, and
-                                      integrations
+Planner Agent Understand requests, inspect scope,
+and create an ordered task plan
 
-  SEO Agent                           Technical SEO, metadata, canonical
-                                      URLs, sitemap, robots directives,
-                                      structured data, and semantic HTML
+Frontend Agent React, Next.js, UI components,
+responsive layouts, and
+accessibility
 
-  Testing Agent                       Unit, integration, end-to-end,
-                                      regression, and workflow testing
+Animation Agent GSAP, Three.js, Framer Motion,
+CSS/SVG motion, interactions, and
+animation performance
 
-  Code Review Agent                   Review diffs for correctness,
-                                      maintainability, regressions, and
-                                      security concerns
+Backend Agent APIs, server-side logic,
+authentication, databases, and
+integrations
 
-  Documentation Agent                 Maintain setup guides, architecture
-                                      notes, API docs, and change
-                                      documentation
-  -----------------------------------------------------------------------
+SEO Agent Technical SEO, metadata, canonical
+URLs, sitemap, robots directives,
+structured data, and semantic HTML
+
+Testing Agent Unit, integration, end-to-end,
+regression, and workflow testing
+
+Code Review Agent Review diffs for correctness,
+maintainability, regressions, and
+security concerns
+
+Documentation Agent Maintain setup guides, architecture
+notes, API docs, and change
+documentation
+-----------------------------------------------------------------------
 
 Additional roles can be introduced later when evaluation shows a clear
 need---for example, a Database Agent, Security Agent, DevOps Agent, or
 Accessibility Agent.
 
-------------------------------------------------------------------------
+---
 
 # Implementation tasks
 
@@ -107,24 +110,24 @@ implementation before changing architecture or adding features.
 
 ### Constraints
 
--   Do not modify implementation files during the initial audit.
--   Do not assume README or architecture documentation proves a feature
-    works.
--   Verify findings against source code and tests.
--   Do not add dependencies during the audit.
+- Do not modify implementation files during the initial audit.
+- Do not assume README or architecture documentation proves a feature
+  works.
+- Verify findings against source code and tests.
+- Do not add dependencies during the audit.
 
 ### Deliverables
 
 Create `docs/CODEBASE_AUDIT.md` with:
 
--   Current implementation status
--   Verified working features
--   Incomplete or missing features
--   Critical architectural gaps
--   Security and performance findings
--   Test coverage gaps
--   Prioritized recommendations
--   Exact source paths and evidence for each finding
+- Current implementation status
+- Verified working features
+- Incomplete or missing features
+- Critical architectural gaps
+- Security and performance findings
+- Test coverage gaps
+- Prioritized recommendations
+- Exact source paths and evidence for each finding
 
 Classify findings as `Critical`, `High`, `Medium`, or `Low`.
 
@@ -133,7 +136,7 @@ Classify findings as `Critical`, `High`, `Medium`, or `Low`.
 The audit is complete when the current state is documented accurately
 and implementation priorities are supported by source-level evidence.
 
-------------------------------------------------------------------------
+---
 
 ## Task 02 --- Advanced Local Model and Provider Management
 
@@ -152,16 +155,16 @@ provider-independent.
 5.  Detect capabilities such as chat, streaming, tool calling,
     embeddings, and model management.
 6.  Add configurable model roles:
-    -   General Chat
-    -   Planning
-    -   Frontend Coding
-    -   Animation
-    -   Backend Coding
-    -   SEO
-    -   Testing
-    -   Code Review
-    -   Fast Completion
-    -   Embeddings
+    - General Chat
+    - Planning
+    - Frontend Coding
+    - Animation
+    - Backend Coding
+    - SEO
+    - Testing
+    - Code Review
+    - Fast Completion
+    - Embeddings
 7.  Allow multiple roles to use the same model.
 8.  Allow users to assign different configured models to different
     roles.
@@ -175,19 +178,19 @@ provider-independent.
 
 ### Constraints
 
--   Do not hardcode model names or assume a specific model is installed.
--   Do not assume all models support tool calling or embeddings.
--   Keep provider-specific behavior inside provider adapters.
--   Keep model configuration separate from agent definitions.
--   Do not imply that changing a system prompt or Modelfile is
-    equivalent to fine-tuning model weights.
+- Do not hardcode model names or assume a specific model is installed.
+- Do not assume all models support tool calling or embeddings.
+- Keep provider-specific behavior inside provider adapters.
+- Keep model configuration separate from agent definitions.
+- Do not imply that changing a system prompt or Modelfile is
+  equivalent to fine-tuning model weights.
 
 ### Deliverables
 
--   Working provider/model management improvements
--   Updated tests
--   `docs/MODEL_MANAGEMENT.md`
--   User-visible model-role configuration
+- Working provider/model management improvements
+- Updated tests
+- `docs/MODEL_MANAGEMENT.md`
+- User-visible model-role configuration
 
 ### Definition of done
 
@@ -195,7 +198,7 @@ A user can configure available providers and models, assign model roles,
 inspect capabilities, and receive clear errors or safe fallbacks when a
 model cannot perform a requested task.
 
-------------------------------------------------------------------------
+---
 
 ## Task 03 --- Project Intelligence and Advanced RAG
 
@@ -216,22 +219,22 @@ retrieve relevant project context accurately.
 8.  Keep parser integrations replaceable; do not make heuristic parsing
     look like full language understanding.
 9.  Combine available retrieval signals:
-    -   Vector similarity
-    -   Keyword search
-    -   Symbol search
-    -   File/path relevance
-    -   Recent file activity
+    - Vector similarity
+    - Keyword search
+    - Symbol search
+    - File/path relevance
+    - Recent file activity
 10. Add configurable hybrid ranking and inspectable retrieval results.
 11. Improve ContextBuilder to assemble:
 
--   Project overview
--   Relevant project rules
--   File tree
--   Relevant code snippets
--   Related symbols
--   Recent conversation context
--   Task-specific context
--   Token budget
+- Project overview
+- Relevant project rules
+- File tree
+- Relevant code snippets
+- Related symbols
+- Recent conversation context
+- Task-specific context
+- Token budget
 
 12. Support cancellation, progress reporting, error recovery, and
     persistent indexing state.
@@ -239,19 +242,19 @@ retrieve relevant project context accurately.
 
 ### Constraints
 
--   Reuse the existing SQLite and VectorStore architecture.
--   Avoid full-project re-indexing for small changes.
--   Never expose excluded secrets to an LLM.
--   Keep retrieval evidence traceable to file paths and source ranges
-    where available.
--   Do not invent code context when retrieval returns no relevant
-    evidence.
+- Reuse the existing SQLite and VectorStore architecture.
+- Avoid full-project re-indexing for small changes.
+- Never expose excluded secrets to an LLM.
+- Keep retrieval evidence traceable to file paths and source ranges
+  where available.
+- Do not invent code context when retrieval returns no relevant
+  evidence.
 
 ### Deliverables
 
--   Improved indexing and retrieval implementation
--   Tests for incremental indexing and exclusions
--   `docs/PROJECT_INTELLIGENCE.md`
+- Improved indexing and retrieval implementation
+- Tests for incremental indexing and exclusions
+- `docs/PROJECT_INTELLIGENCE.md`
 
 ### Definition of done
 
@@ -259,7 +262,7 @@ ForgeAI can index a project, update the index incrementally, retrieve
 relevant code for a task, and explain which project files informed the
 response.
 
-------------------------------------------------------------------------
+---
 
 ## Task 04 --- Intelligent Model Router
 
@@ -270,16 +273,16 @@ respecting capabilities, availability, and user preferences.
 
 1.  Implement or improve a dedicated `ModelRouter`.
 2.  Route task types such as:
-    -   General conversation
-    -   Planning
-    -   Frontend implementation
-    -   Animation implementation
-    -   Backend implementation
-    -   SEO analysis
-    -   Test generation and execution support
-    -   Code review
-    -   Documentation
-    -   Embedding generation
+    - General conversation
+    - Planning
+    - Frontend implementation
+    - Animation implementation
+    - Backend implementation
+    - SEO analysis
+    - Test generation and execution support
+    - Code review
+    - Documentation
+    - Embedding generation
 3.  Use configured model roles as the primary routing preference.
 4.  Check model/provider availability before execution.
 5.  Check required capabilities before assigning a task.
@@ -294,19 +297,19 @@ respecting capabilities, availability, and user preferences.
 
 ### Constraints
 
--   Do not hardcode a model as universally best.
--   Do not route a task to a model that lacks a required capability
-    without a documented fallback.
--   Do not silently change the user's configured model preference.
--   Keep routing separate from agent orchestration.
+- Do not hardcode a model as universally best.
+- Do not route a task to a model that lacks a required capability
+  without a documented fallback.
+- Do not silently change the user's configured model preference.
+- Keep routing separate from agent orchestration.
 
 ### Deliverables
 
--   `ModelRouter` implementation or documented improvements to the
-    existing router
--   Integration with ChatService and AgentRuntime
--   Unit and integration tests
--   `docs/MODEL_ROUTING.md`
+- `ModelRouter` implementation or documented improvements to the
+  existing router
+- Integration with ChatService and AgentRuntime
+- Unit and integration tests
+- `docs/MODEL_ROUTING.md`
 
 ### Definition of done
 
@@ -314,7 +317,7 @@ ForgeAI can select a suitable configured model for each supported task,
 explain or log the decision, and handle unavailable or incompatible
 models safely.
 
-------------------------------------------------------------------------
+---
 
 ## Task 05 --- Multi-Agent Orchestration and Specialist Agent Team
 
@@ -325,79 +328,79 @@ engine that coordinates specialist software-development agents.
 
 #### 1. Planner Agent
 
--   Understand the user's request and acceptance criteria.
--   Inspect relevant project context.
--   Break work into small, ordered tasks.
--   Identify dependencies, risks, and files likely to change.
--   Decide which specialist agents are required.
+- Understand the user's request and acceptance criteria.
+- Inspect relevant project context.
+- Break work into small, ordered tasks.
+- Identify dependencies, risks, and files likely to change.
+- Decide which specialist agents are required.
 
 #### 2. Frontend Agent
 
--   Build and refactor React and Next.js interfaces.
--   Implement components, layouts, responsive behavior, and
-    accessibility.
--   Follow the project's design system and existing conventions.
--   Coordinate with the Animation Agent when motion-heavy work is
-    required.
+- Build and refactor React and Next.js interfaces.
+- Implement components, layouts, responsive behavior, and
+  accessibility.
+- Follow the project's design system and existing conventions.
+- Coordinate with the Animation Agent when motion-heavy work is
+  required.
 
 #### 3. Animation Agent
 
--   Implement advanced interactions and animation using GSAP,
-    ScrollTrigger, Three.js, Framer Motion, CSS, and SVG where
-    appropriate.
--   Handle animation lifecycle and cleanup in React/Next.js.
--   Consider responsive behavior, reduced-motion preferences, keyboard
-    accessibility, and performance.
--   Avoid unnecessary animation libraries or excessive runtime work.
--   Verify implementation using available browser, preview, or test
-    capabilities; do not claim visual verification if no visual check
-    was performed.
+- Implement advanced interactions and animation using GSAP,
+  ScrollTrigger, Three.js, Framer Motion, CSS, and SVG where
+  appropriate.
+- Handle animation lifecycle and cleanup in React/Next.js.
+- Consider responsive behavior, reduced-motion preferences, keyboard
+  accessibility, and performance.
+- Avoid unnecessary animation libraries or excessive runtime work.
+- Verify implementation using available browser, preview, or test
+  capabilities; do not claim visual verification if no visual check
+  was performed.
 
 #### 4. Backend Agent
 
--   Implement APIs, server-side logic, authentication, authorization,
-    validation, and integrations.
--   Work with SQL and NoSQL databases where supported by the project.
--   Follow existing framework and architecture conventions.
--   Consider error handling, security, and tests.
+- Implement APIs, server-side logic, authentication, authorization,
+  validation, and integrations.
+- Work with SQL and NoSQL databases where supported by the project.
+- Follow existing framework and architecture conventions.
+- Consider error handling, security, and tests.
 
 #### 5. SEO Agent
 
--   Audit and implement technical SEO.
--   Review metadata, title/description, canonical URLs, robots
-    directives, sitemap, and structured data.
--   Check semantic HTML, headings, internal links, and indexability.
--   Review rendering strategy and page-specific metadata.
--   Validate structured data syntax and avoid unsupported or misleading
-    claims.
--   Distinguish code-level SEO checks from live search-engine indexing
-    outcomes.
+- Audit and implement technical SEO.
+- Review metadata, title/description, canonical URLs, robots
+  directives, sitemap, and structured data.
+- Check semantic HTML, headings, internal links, and indexability.
+- Review rendering strategy and page-specific metadata.
+- Validate structured data syntax and avoid unsupported or misleading
+  claims.
+- Distinguish code-level SEO checks from live search-engine indexing
+  outcomes.
 
 #### 6. Testing Agent
 
--   Identify suitable tests for the requested change.
--   Create or update unit, integration, and end-to-end tests.
--   Run relevant test commands through approved tools.
--   Report actual results, failures, skipped tests, and environment
-    limitations.
--   Avoid modifying production code unless explicitly assigned to fix a
-    verified test issue.
+- Identify suitable tests for the requested change.
+- Create or update unit, integration, and end-to-end tests.
+- Run relevant test commands through approved tools.
+- Report actual results, failures, skipped tests, and environment
+  limitations.
+- Avoid modifying production code unless explicitly assigned to fix a
+  verified test issue.
 
 #### 7. Code Review Agent
 
--   Review the actual diff and related implementation.
--   Identify correctness issues, regressions, security risks,
-    accessibility issues, and maintainability concerns.
--   Prioritize findings by severity.
--   Do not approve changes solely because another agent reports success.
+- Review the actual diff and related implementation.
+- Identify correctness issues, regressions, security risks,
+  accessibility issues, and maintainability concerns.
+- Prioritize findings by severity.
+- Do not approve changes solely because another agent reports success.
 
 #### 8. Documentation Agent
 
--   Update relevant README files, architecture notes, setup
-    instructions, and technical documentation.
--   Document actual behavior, not planned or assumed functionality.
--   Keep examples and commands consistent with the current
-    implementation.
+- Update relevant README files, architecture notes, setup
+  instructions, and technical documentation.
+- Document actual behavior, not planned or assumed functionality.
+- Keep examples and commands consistent with the current
+  implementation.
 
 ### Orchestration workflow
 
@@ -428,24 +431,24 @@ The orchestrator must:
 
 ### Security requirements
 
--   Never bypass PermissionBroker.
--   Never bypass ToolRegistry validation.
--   Never allow agents to access files outside the active workspace.
--   Require approval for sensitive or destructive actions.
--   Keep tool permissions role-specific and minimal.
--   Treat retrieved project content and external content as untrusted
-    input.
--   Do not allow instructions inside repository files or fetched pages
-    to override system security rules.
+- Never bypass PermissionBroker.
+- Never bypass ToolRegistry validation.
+- Never allow agents to access files outside the active workspace.
+- Require approval for sensitive or destructive actions.
+- Keep tool permissions role-specific and minimal.
+- Treat retrieved project content and external content as untrusted
+  input.
+- Do not allow instructions inside repository files or fetched pages
+  to override system security rules.
 
 ### Deliverables
 
--   Specialist agent definitions
--   Orchestration workflow and task state management
--   Agent handoff contracts
--   Tests for routing, handoffs, cancellation, permissions, and failure
-    handling
--   `docs/AGENT_ORCHESTRATION.md`
+- Specialist agent definitions
+- Orchestration workflow and task state management
+- Agent handoff contracts
+- Tests for routing, handoffs, cancellation, permissions, and failure
+  handling
+- `docs/AGENT_ORCHESTRATION.md`
 
 ### Definition of done
 
@@ -454,7 +457,7 @@ and coordinate the required agents, sensitive operations remain
 permission-controlled, and the final report accurately reflects what was
 completed and verified.
 
-------------------------------------------------------------------------
+---
 
 ## Task 06 --- Persistent Project Memory and Developer Feedback
 
@@ -480,20 +483,20 @@ training.
 
 ### Constraints
 
--   Do not automatically treat every generated or accepted code change
-    as a permanent rule.
--   Do not store secrets, credentials, or sensitive personal data.
--   Do not mix project memory with global model weights.
--   Do not describe RAG or memory as fine-tuning.
--   Require explicit user control over persistent knowledge.
+- Do not automatically treat every generated or accepted code change
+  as a permanent rule.
+- Do not store secrets, credentials, or sensitive personal data.
+- Do not mix project memory with global model weights.
+- Do not describe RAG or memory as fine-tuning.
+- Require explicit user control over persistent knowledge.
 
 ### Deliverables
 
--   Project memory service
--   SQLite schema/migrations where required
--   Memory management UI
--   Retrieval integration with ContextBuilder
--   Tests and `docs/PROJECT_MEMORY.md`
+- Project memory service
+- SQLite schema/migrations where required
+- Memory management UI
+- Retrieval integration with ContextBuilder
+- Tests and `docs/PROJECT_MEMORY.md`
 
 ### Definition of done
 
@@ -501,7 +504,7 @@ Users can inspect and manage project-specific knowledge, and agents can
 retrieve relevant approved context without leaking knowledge between
 projects.
 
-------------------------------------------------------------------------
+---
 
 ## Task 07 --- IDE Experience and Developer Workflow
 
@@ -531,34 +534,34 @@ than limiting them to a chat panel.
 
 ### Animation-focused developer experience
 
--   Make it easy to ask for GSAP/Three.js/Framer Motion implementation
-    in the active project.
--   Provide relevant project animation rules and examples to the
-    Animation Agent.
--   Support review of animation-related diffs and performance
-    considerations.
--   Where browser preview or visual testing is available, expose the
-    result to the user.
--   Do not claim pixel-perfect or cross-device visual validation without
-    actual evidence.
+- Make it easy to ask for GSAP/Three.js/Framer Motion implementation
+  in the active project.
+- Provide relevant project animation rules and examples to the
+  Animation Agent.
+- Support review of animation-related diffs and performance
+  considerations.
+- Where browser preview or visual testing is available, expose the
+  result to the user.
+- Do not claim pixel-perfect or cross-device visual validation without
+  actual evidence.
 
 ### Constraints
 
--   Reuse existing Monaco, IPC, file, checkpoint, and permission
-    services.
--   Keep the UI responsive during long-running tasks.
--   Do not apply potentially destructive changes without the required
-    approval.
--   Avoid building an extension marketplace before core IDE workflows
-    are stable.
+- Reuse existing Monaco, IPC, file, checkpoint, and permission
+  services.
+- Keep the UI responsive during long-running tasks.
+- Do not apply potentially destructive changes without the required
+  approval.
+- Avoid building an extension marketplace before core IDE workflows
+  are stable.
 
 ### Deliverables
 
--   Agent-aware IDE UI
--   Diff/approval workflow
--   Relevant editor integrations
--   UI and integration tests
--   `docs/IDE_WORKFLOWS.md`
+- Agent-aware IDE UI
+- Diff/approval workflow
+- Relevant editor integrations
+- UI and integration tests
+- `docs/IDE_WORKFLOWS.md`
 
 ### Definition of done
 
@@ -566,7 +569,7 @@ Users can invoke specialist agents from the IDE, inspect their progress
 and proposed changes, approve or reject edits, and recover safely from
 failed operations.
 
-------------------------------------------------------------------------
+---
 
 ## Task 08 --- Local AI Performance and Resource Optimization
 
@@ -575,9 +578,9 @@ remaining compatible with other supported systems.
 
 ### Reference development hardware
 
--   Apple MacBook M1
--   16GB unified memory
--   1TB SSD
+- Apple MacBook M1
+- 16GB unified memory
+- 1TB SSD
 
 This is a test target, not a hardcoded platform assumption.
 
@@ -602,18 +605,18 @@ This is a test target, not a hardcoded platform assumption.
 
 ### Constraints
 
--   Do not promise that a particular model or fine-tuning workload will
-    fit in available memory without measurement.
--   Do not hardcode M1-specific assumptions into shared services.
--   Do not report estimated memory as measured memory.
--   Keep resource monitoring provider-independent where practical.
+- Do not promise that a particular model or fine-tuning workload will
+  fit in available memory without measurement.
+- Do not hardcode M1-specific assumptions into shared services.
+- Do not report estimated memory as measured memory.
+- Keep resource monitoring provider-independent where practical.
 
 ### Deliverables
 
--   Performance fixes supported by measurements
--   Benchmark scripts or documented procedures
--   Tests for cancellation and resource-failure handling
--   `docs/LOCAL_PERFORMANCE.md`
+- Performance fixes supported by measurements
+- Benchmark scripts or documented procedures
+- Tests for cancellation and resource-failure handling
+- `docs/LOCAL_PERFORMANCE.md`
 
 ### Definition of done
 
@@ -621,7 +624,7 @@ Representative workflows have measured performance baselines,
 resource-related failures are handled gracefully, and documented
 optimizations are supported by actual measurements.
 
-------------------------------------------------------------------------
+---
 
 ## Task 09 --- Security Hardening
 
@@ -651,26 +654,26 @@ desktop, filesystem, shell, provider, and agent architecture.
 
 ### Constraints
 
--   Do not weaken permission controls to make agent workflows easier.
--   Do not treat a command denylist as the only shell security boundary.
--   Do not assume repository files, retrieved documents, model output,
-    or fetched pages are trusted instructions.
--   Do not claim a formal security certification or penetration test
-    unless one has actually been completed.
+- Do not weaken permission controls to make agent workflows easier.
+- Do not treat a command denylist as the only shell security boundary.
+- Do not assume repository files, retrieved documents, model output,
+  or fetched pages are trusted instructions.
+- Do not claim a formal security certification or penetration test
+  unless one has actually been completed.
 
 ### Deliverables
 
--   Verified security fixes
--   Security regression tests
--   `docs/SECURITY_AUDIT.md`
--   Documented residual risks
+- Verified security fixes
+- Security regression tests
+- `docs/SECURITY_AUDIT.md`
+- Documented residual risks
 
 ### Definition of done
 
 Critical security boundaries have been tested, verified issues are fixed
 where feasible, and remaining risks are clearly documented.
 
-------------------------------------------------------------------------
+---
 
 ## Task 10 --- Testing, Packaging, and Release Readiness
 
@@ -681,103 +684,103 @@ matches actual, tested behavior.
 
 #### 10.1 Feature and documentation audit
 
--   Compare README and architecture documentation against source code.
--   Identify incomplete, experimental, mocked, or unsupported features.
--   Correct inaccurate installation, configuration, platform, and
-    feature claims.
--   Do not advertise planned features as completed.
+- Compare README and architecture documentation against source code.
+- Identify incomplete, experimental, mocked, or unsupported features.
+- Correct inaccurate installation, configuration, platform, and
+  feature claims.
+- Do not advertise planned features as completed.
 
 #### 10.2 Build and code quality
 
--   Install dependencies using the documented package-manager workflow.
--   Run production builds for intended release targets.
--   Run TypeScript checks, linting, and formatting checks where
-    configured.
--   Resolve release-blocking issues.
--   Record accepted warnings and environment limitations.
+- Install dependencies using the documented package-manager workflow.
+- Run production builds for intended release targets.
+- Run TypeScript checks, linting, and formatting checks where
+  configured.
+- Resolve release-blocking issues.
+- Record accepted warnings and environment limitations.
 
 #### 10.3 Automated tests
 
--   Run unit and integration tests.
--   Add regression tests for release-blocking bugs.
--   Test database initialization and migrations on a clean setup.
--   Record exact commands and actual results.
--   Identify skipped or unavailable test suites.
+- Run unit and integration tests.
+- Add regression tests for release-blocking bugs.
+- Test database initialization and migrations on a clean setup.
+- Record exact commands and actual results.
+- Identify skipped or unavailable test suites.
 
 #### 10.4 Provider and model tests
 
--   Test Ollama connection detection and model discovery.
--   Test supported local model chat and streaming.
--   Test provider unavailable, model unavailable, timeout, and
-    interrupted-stream cases.
--   Test capability detection and model fallback behavior.
--   Test other providers only where support is implemented.
+- Test Ollama connection detection and model discovery.
+- Test supported local model chat and streaming.
+- Test provider unavailable, model unavailable, timeout, and
+  interrupted-stream cases.
+- Test capability detection and model fallback behavior.
+- Test other providers only where support is implemented.
 
 #### 10.5 Project intelligence tests
 
--   Test initial and incremental indexing.
--   Test file create, update, rename, and delete behavior.
--   Verify exclusion rules and secret handling.
--   Test semantic, keyword, and symbol retrieval where implemented.
--   Test cancellation, progress, and error recovery.
--   Record performance observations on representative projects.
+- Test initial and incremental indexing.
+- Test file create, update, rename, and delete behavior.
+- Verify exclusion rules and secret handling.
+- Test semantic, keyword, and symbol retrieval where implemented.
+- Test cancellation, progress, and error recovery.
+- Record performance observations on representative projects.
 
 #### 10.6 Agent and orchestration tests
 
--   Verify every implemented specialist agent can be invoked for its
-    intended task.
--   Test Planner-to-specialist task handoffs.
--   Test Frontend and Animation collaboration.
--   Test Backend, SEO, Testing, Code Review, and Documentation
-    workflows.
--   Test a representative end-to-end request involving implementation,
-    SEO, testing, and review.
--   Verify independent tasks are parallelized only when safe.
--   Verify conflicting file changes are serialized or explicitly
-    resolved.
--   Test agent failure, cancellation, retry limits, and execution
-    budgets.
--   Verify final reports distinguish completed, failed, blocked, and
-    unverified work.
+- Verify every implemented specialist agent can be invoked for its
+  intended task.
+- Test Planner-to-specialist task handoffs.
+- Test Frontend and Animation collaboration.
+- Test Backend, SEO, Testing, Code Review, and Documentation
+  workflows.
+- Test a representative end-to-end request involving implementation,
+  SEO, testing, and review.
+- Verify independent tasks are parallelized only when safe.
+- Verify conflicting file changes are serialized or explicitly
+  resolved.
+- Test agent failure, cancellation, retry limits, and execution
+  budgets.
+- Verify final reports distinguish completed, failed, blocked, and
+  unverified work.
 
 #### 10.7 Permissions and workspace isolation
 
--   Verify all agents use approved tools.
--   Test approval requirements for sensitive actions.
--   Test workspace path confinement and symlink escape protections.
--   Verify shell command policies.
--   Verify audit logging where implemented.
--   Confirm agents cannot bypass PermissionBroker or ToolRegistry
-    validation.
+- Verify all agents use approved tools.
+- Test approval requirements for sensitive actions.
+- Test workspace path confinement and symlink escape protections.
+- Verify shell command policies.
+- Verify audit logging where implemented.
+- Confirm agents cannot bypass PermissionBroker or ToolRegistry
+  validation.
 
 #### 10.8 Checkpoint and rollback
 
--   Test checkpoint creation before modifications.
--   Test rollback after file changes.
--   Test added, modified, and deleted files.
--   Verify rollback cannot affect files outside the active workspace.
--   Test failure reporting.
+- Test checkpoint creation before modifications.
+- Test rollback after file changes.
+- Test added, modified, and deleted files.
+- Verify rollback cannot affect files outside the active workspace.
+- Test failure reporting.
 
 #### 10.9 Offline functionality
 
--   Launch ForgeAI without internet access.
--   Verify desktop startup and local workspace workflows.
--   Verify local provider/model workflows where configured.
--   Identify features that genuinely require network access.
--   Confirm cloud integrations are opt-in and do not break local
-    workflows.
+- Launch ForgeAI without internet access.
+- Verify desktop startup and local workspace workflows.
+- Verify local provider/model workflows where configured.
+- Identify features that genuinely require network access.
+- Confirm cloud integrations are opt-in and do not break local
+  workflows.
 
 #### 10.10 Packaging and onboarding
 
--   Build the macOS package using the documented release process if
-    macOS is a target.
--   Install and launch it in a clean test environment.
--   Verify required permissions and data directories.
--   Test first-run onboarding and local provider setup.
--   Verify settings and project data persist across restarts.
--   Review signing and notarization requirements if needed for
-    distribution.
--   Document platform-specific limitations.
+- Build the macOS package using the documented release process if
+  macOS is a target.
+- Install and launch it in a clean test environment.
+- Verify required permissions and data directories.
+- Test first-run onboarding and local provider setup.
+- Verify settings and project data persist across restarts.
+- Review signing and notarization requirements if needed for
+  distribution.
+- Document platform-specific limitations.
 
 ### Required deliverables
 
@@ -785,36 +788,36 @@ matches actual, tested behavior.
 
 For each check, record:
 
--   Status: `PASS`, `FAIL`, `BLOCKED`, `NOT TESTED`, or `NOT APPLICABLE`
--   Exact command or test procedure
--   Actual result
--   Evidence or relevant issue
--   Follow-up action, if needed
+- Status: `PASS`, `FAIL`, `BLOCKED`, `NOT TESTED`, or `NOT APPLICABLE`
+- Exact command or test procedure
+- Actual result
+- Evidence or relevant issue
+- Follow-up action, if needed
 
 #### `docs/KNOWN_LIMITATIONS.md`
 
 Document:
 
--   Incomplete or experimental features
--   Unsupported provider capabilities
--   Platform limitations
--   Performance constraints
--   Known bugs not fixed
--   Verified workarounds
--   Future work, clearly separated from current capabilities
+- Incomplete or experimental features
+- Unsupported provider capabilities
+- Platform limitations
+- Performance constraints
+- Known bugs not fixed
+- Verified workarounds
+- Future work, clearly separated from current capabilities
 
 #### Updated `README.md`
 
 Ensure the project README accurately describes:
 
--   Product purpose and implemented features
--   Supported platforms and prerequisites
--   Installation and development setup
--   Provider and local-model setup
--   Agent roles and orchestration capabilities
--   Configuration and testing commands
--   Known limitations
--   Actual release status
+- Product purpose and implemented features
+- Supported platforms and prerequisites
+- Installation and development setup
+- Provider and local-model setup
+- Agent roles and orchestration capabilities
+- Configuration and testing commands
+- Known limitations
+- Actual release status
 
 ### Definition of done
 
@@ -837,7 +840,7 @@ Task 10 is complete only when:
 10. ForgeAI is not described as release-ready until the release criteria
     are genuinely satisfied.
 
-------------------------------------------------------------------------
+---
 
 # Global AI Coding Agent Instructions
 
@@ -878,14 +881,14 @@ Use these instructions when executing any of the ten tasks.
 
 Provide:
 
--   **Summary:** What was implemented.
--   **Files changed:** Created, modified, or deleted paths.
--   **Architecture decisions:** Important decisions and reasons.
--   **Tests executed:** Exact commands and actual results.
--   **Known limitations:** What remains incomplete or unverified.
--   **Next steps:** Dependencies or follow-up tasks.
+- **Summary:** What was implemented.
+- **Files changed:** Created, modified, or deleted paths.
+- **Architecture decisions:** Important decisions and reasons.
+- **Tests executed:** Exact commands and actual results.
+- **Known limitations:** What remains incomplete or unverified.
+- **Next steps:** Dependencies or follow-up tasks.
 
-------------------------------------------------------------------------
+---
 
 # Recommended execution order
 

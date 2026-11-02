@@ -293,9 +293,7 @@ export function recommendRoles(models: ModelInfo[]): Partial<Record<ModelRole, {
 
   // Best reasoning/thinking model (Antigravity/o1 style)
   const reasoningModel =
-    completion.find((m) => m.id.includes('deepseek-r1')) ??
-    completion.find((m) => /r1/i.test(m.id)) ??
-    coderModel;
+    completion.find((m) => m.id.includes('deepseek-r1')) ?? completion.find((m) => /r1/i.test(m.id)) ?? coderModel;
 
   if (coderModel) {
     const binding = { providerId: coderModel.providerId, model: coderModel.id };

@@ -41,7 +41,9 @@ describe('parseToolEnvelope', () => {
   });
 
   it('handles stringified arguments', () => {
-    const result = parseToolEnvelope('{"tool":"write_file","arguments":"{\\"path\\":\\"a.ts\\",\\"content\\":\\"hello\\"}"}');
+    const result = parseToolEnvelope(
+      '{"tool":"write_file","arguments":"{\\"path\\":\\"a.ts\\",\\"content\\":\\"hello\\"}"}',
+    );
     expect(result!.calls[0]!.arguments).toEqual({ path: 'a.ts', content: 'hello' });
   });
 

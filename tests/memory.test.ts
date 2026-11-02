@@ -77,7 +77,8 @@ describe('Project Memory Service', () => {
   });
 
   it('injects persistent memory into the agent system prompt', () => {
-    const memoryContext = '[CONVENTION] Code Style: Strictly TypeScript strict mode.\n[DECISION] Auth: Use session tokens.';
+    const memoryContext =
+      '[CONVENTION] Code Style: Strictly TypeScript strict mode.\n[DECISION] Auth: Use session tokens.';
     const prompt = buildSystemPrompt({
       agent: 'coding',
       workspaceName: 'test-app',

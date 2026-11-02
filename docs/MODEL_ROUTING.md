@@ -55,20 +55,20 @@ The `ModelRouter` is ForgeAI's central decision engine for assigning models to r
 
 ## 2. Supported Routing Tasks & Fallback Matrix
 
-| Routing Task | Primary Configured Role | Fallback Chain | Required Default Capabilities |
-| :--- | :--- | :--- | :--- |
-| `chat` | `chat` | `coding` → `fast` | `chat: true` |
-| `plan` | `plan` | `coding` → `review` → `chat` | `chat: true`, `thinking: optional` |
-| `coding` | `coding` | `frontend` → `backend` → `chat` | `chat: true`, `tools: true` |
-| `frontend` | `frontend` | `coding` → `chat` | `chat: true`, `tools: true` |
-| `animation` | `animation` | `frontend` → `coding` → `chat` | `chat: true`, `tools: true` |
-| `backend` | `backend` | `coding` → `chat` | `chat: true`, `tools: true` |
-| `seo` | `seo` | `coding` → `chat` | `chat: true`, `tools: true` |
-| `testing` | `testing` | `coding` → `chat` | `chat: true`, `tools: true` |
-| `review` | `review` | `plan` → `coding` → `chat` | `chat: true` |
-| `docs` | `chat` | `coding` | `chat: true` |
-| `fast` | `fast` | `coding` → `chat` | `completion: true` |
-| `embedding` | `embedding` | *None (strict)* | `embedding: true` |
+| Routing Task | Primary Configured Role | Fallback Chain                  | Required Default Capabilities      |
+| :----------- | :---------------------- | :------------------------------ | :--------------------------------- |
+| `chat`       | `chat`                  | `coding` → `fast`               | `chat: true`                       |
+| `plan`       | `plan`                  | `coding` → `review` → `chat`    | `chat: true`, `thinking: optional` |
+| `coding`     | `coding`                | `frontend` → `backend` → `chat` | `chat: true`, `tools: true`        |
+| `frontend`   | `frontend`              | `coding` → `chat`               | `chat: true`, `tools: true`        |
+| `animation`  | `animation`             | `frontend` → `coding` → `chat`  | `chat: true`, `tools: true`        |
+| `backend`    | `backend`               | `coding` → `chat`               | `chat: true`, `tools: true`        |
+| `seo`        | `seo`                   | `coding` → `chat`               | `chat: true`, `tools: true`        |
+| `testing`    | `testing`               | `coding` → `chat`               | `chat: true`, `tools: true`        |
+| `review`     | `review`                | `plan` → `coding` → `chat`      | `chat: true`                       |
+| `docs`       | `chat`                  | `coding`                        | `chat: true`                       |
+| `fast`       | `fast`                  | `coding` → `chat`               | `completion: true`                 |
+| `embedding`  | `embedding`             | _None (strict)_                 | `embedding: true`                  |
 
 ---
 
@@ -91,4 +91,3 @@ Check Models in Settings to download or enable a compatible model.
 ```
 
 This prevents silent failures, unexpected runtime crashes, or garbled non-functional outputs.
-

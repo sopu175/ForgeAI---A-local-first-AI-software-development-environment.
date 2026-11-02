@@ -170,11 +170,7 @@ export class WorkspaceService {
         if (!this.current) return;
         const relative = normalizeRelative(path.relative(root, absolute));
         if (!relative) return;
-        if (
-          relative === '.git/HEAD' ||
-          relative === '.git/index' ||
-          relative.startsWith('.git/refs/')
-        ) {
+        if (relative === '.git/HEAD' || relative === '.git/index' || relative.startsWith('.git/refs/')) {
           this.broadcast('git:changed', { projectId: this.projectId });
           return;
         }
