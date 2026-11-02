@@ -63,6 +63,9 @@ export function Explorer() {
   const rules = useAppStore((state) => state.rules);
   const openFile = useAppStore((state) => state.openFile);
   const refreshTree = useAppStore((state) => state.refreshTree);
+  const refreshGit = useAppStore((state) => state.refreshGit);
+  const refreshIndex = useAppStore((state) => state.refreshIndex);
+  const refreshStack = useAppStore((state) => state.refreshStack);
   const askPrompt = useAppStore((state) => state.askPrompt);
   const askConfirm = useAppStore((state) => state.askConfirm);
   const toast = useAppStore((state) => state.toast);
@@ -71,6 +74,7 @@ export function Explorer() {
 
   const [filter, setFilter] = useState('');
   const [showFilter, setShowFilter] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [localChildren, setLocalChildren] = useState<Record<string, FileNode[]>>({});
   const [loadingDirs, setLoadingDirs] = useState<Record<string, boolean>>({});
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -130,11 +134,10 @@ export function Explorer() {
   // re-fetch directory listings for all currently expanded folders so new files and subdirectories
   // appear immediately in the explorer without collapsing folders.
   useEffect(() => {
-    const expandedDirs = Array.from(new Set([...expanded, ...Object.keys(localChildren)]));
-    if (expandedDirs.length === 0) return;
+    if (expanded.length === 0) return;
     let cancelled = false;
     void Promise.all(
-      expandedDirs.map(async (dirPath) => {
+      expanded.map(async (dirPath) => {
         try {
           const entries = await window.forge.workspace.list(dirPath);
           return {
@@ -164,6 +167,49 @@ export function Explorer() {
       cancelled = true;
     };
   }, [files, expanded]);
+
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await refreshTree();
+      const currentExpanded = useAppStore.getState().expanded;
+      const dirs = Array.from(new Set([...currentExpanded, ...Object.keys(localChildren)]));
+      if (dirs.length > 0) {
+        const results = await Promise.all(
+          dirs.map(async (dirPath) => {
+            try {
+              const entries = await window.forge.workspace.list(dirPath);
+              return {
+                dirPath,
+                nodes: entries.map((entry) => ({
+                  name: entry.name,
+                  path: entry.path,
+                  type: entry.type,
+                  children: entry.type === 'directory' ? [] : undefined,
+                })),
+              };
+            } catch {
+              return { dirPath, nodes: [] };
+            }
+          }),
+        );
+        setLocalChildren((prev) => {
+          const next = { ...prev };
+          for (const res of results) {
+            next[res.dirPath] = res.nodes;
+          }
+          return next;
+        });
+      }
+      await Promise.all([refreshGit(), refreshIndex(), refreshStack()]);
+      toast('info', 'Explorer refreshed');
+    } catch (error) {
+      toast('error', `Refresh failed: ${errorMessage(error)}`);
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 450);
+    }
+  };
 
   useEffect(() => {
     if (showFilter) filterRef.current?.focus();
@@ -498,13 +544,11 @@ export function Explorer() {
           </IconButton>
           <IconButton
             label="Refresh"
-            onClick={async () => {
-              setLocalChildren({});
-              await refreshTree();
-            }}
+            disabled={isRefreshing}
+            onClick={() => void handleRefresh()}
             title="Refresh explorer"
           >
-            <RefreshCw size={12} />
+            <RefreshCw size={12} className={cn(isRefreshing && 'animate-spin text-accent')} />
           </IconButton>
         </div>
       </div>

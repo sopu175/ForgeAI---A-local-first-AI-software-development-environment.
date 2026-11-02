@@ -19,7 +19,6 @@ import {
   FolderTree,
   PenTool,
   Search,
-  Sparkles,
   Square,
   Terminal,
   Timer,
@@ -526,22 +525,22 @@ export function AgentTimeline({
     };
 
     const steps: StepData[] = [];
-    let currentStep: StepData | null = null;
     const globalNotes: Array<{ type: string; text: string }> = [];
 
-    const getOrCreateCurrentStep = () => {
-      if (!currentStep) {
-        currentStep = {
-          step: steps.length + 1,
+    const ensureStep = (): StepData => {
+      let step = steps[steps.length - 1];
+      if (!step) {
+        step = {
+          step: 1,
           maxSteps: 20,
           reasonings: [],
           prose: [],
           actions: [],
           errors: [],
         };
-        steps.push(currentStep);
+        steps.push(step);
       }
-      return currentStep;
+      return step;
     };
 
     for (const event of events) {
@@ -551,7 +550,7 @@ export function AgentTimeline({
           text: `${event.agent} agent started on ${event.model}`,
         });
       } else if (event.type === 'step') {
-        currentStep = {
+        const nextStep: StepData = {
           step: event.info.step,
           maxSteps: event.info.maxSteps,
           reasonings: [],
@@ -559,21 +558,21 @@ export function AgentTimeline({
           actions: [],
           errors: [],
         };
-        steps.push(currentStep);
+        steps.push(nextStep);
       } else if (event.type === 'reasoning') {
-        const s = getOrCreateCurrentStep();
+        const s = ensureStep();
         if (event.text.trim()) s.reasonings.push(event.text);
       } else if (event.type === 'assistant') {
         // Discard raw JSON tool calls so they never display as text cards
         if (!isToolCallJson(event.text)) {
-          const s = getOrCreateCurrentStep();
+          const s = ensureStep();
           s.prose.push(event.text);
         }
       } else if (event.type === 'tool_call') {
-        const s = getOrCreateCurrentStep();
+        const s = ensureStep();
         s.actions.push({ call: event.call });
       } else if (event.type === 'tool_result') {
-        const s = getOrCreateCurrentStep();
+        const s = ensureStep();
         // Match by callId if available, or attach to the most recent call
         const action =
           s.actions.find((a) => a.call.id === event.callId) ??
@@ -588,7 +587,7 @@ export function AgentTimeline({
           });
         }
       } else if (event.type === 'file_change') {
-        const s = getOrCreateCurrentStep();
+        const s = ensureStep();
         const action = s.actions.find((a) => (a.call.arguments as any)?.path === event.change.path);
         if (action) {
           action.fileChange = event.change;
@@ -601,10 +600,10 @@ export function AgentTimeline({
           });
         }
       } else if (event.type === 'usage') {
-        const s = getOrCreateCurrentStep();
+        const s = ensureStep();
         s.usage = { prompt: event.promptTokens, output: event.outputTokens };
       } else if (event.type === 'error') {
-        const s = getOrCreateCurrentStep();
+        const s = ensureStep();
         s.errors.push(event.message);
       } else if (event.type === 'done') {
         globalNotes.push({ type: 'done', text: 'Agent finished task successfully' });

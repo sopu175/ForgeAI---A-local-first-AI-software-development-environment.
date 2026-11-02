@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import {
   DEFAULT_OLLAMA_MODEL,
-  RECOMMENDED_DOWNLOADS,
   type ModelInfo,
   type ModelRole,
   type ProviderConfig,

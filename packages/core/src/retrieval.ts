@@ -1,5 +1,5 @@
 import type { RetrievalResult } from '@forgeai/shared';
-import { cosineSimilarity, dotSimilarity } from './vector';
+import { dotSimilarity } from './vector';
 
 export interface VectorCandidate {
   chunkId: number;

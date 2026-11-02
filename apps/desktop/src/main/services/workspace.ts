@@ -197,7 +197,7 @@ export class WorkspaceService {
 
   private stripPrefix(p: string): string {
     if (process.platform === 'win32') {
-      let cleaned = p;
+      const cleaned = p;
       if (cleaned.startsWith('\\\\?\\UNC\\')) {
         return '\\\\' + cleaned.slice(8);
       }
