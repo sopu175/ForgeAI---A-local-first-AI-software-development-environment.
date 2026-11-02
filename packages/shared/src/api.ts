@@ -20,11 +20,13 @@ import type {
   GitLogEntry,
   GitStatus,
   IndexStatus,
+  MemoryKind,
   ModelInfo,
   ModelRole,
   RoleBinding,
   PermissionRequest,
   PermissionResponse,
+  ProjectMemory,
   ProjectStack,
   ProjectSummary,
   ProviderConfig,
@@ -242,6 +244,12 @@ export interface CheckpointsApi {
   diff(projectId: string, checkpointId: string): Promise<FileChange[]>;
 }
 
+export interface MemoryApi {
+  list(projectId: string, kind?: MemoryKind): Promise<ProjectMemory[]>;
+  save(memory: Omit<ProjectMemory, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): Promise<ProjectMemory>;
+  remove(id: string): Promise<void>;
+}
+
 export interface AppApi {
   info(): Promise<AppInfo>;
   openExternal(url: string): Promise<void>;
@@ -266,6 +274,7 @@ export interface ForgeApi {
   git: GitApi;
   terminal: TerminalApi;
   checkpoints: CheckpointsApi;
+  memory: MemoryApi;
   events: {
     on<K extends ForgeEventName>(event: K, callback: (payload: ForgeEvents[K]) => void): () => void;
   };

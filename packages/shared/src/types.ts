@@ -169,6 +169,19 @@ export interface RoleBinding {
   model: string;
 }
 
+export type MemoryKind = 'decision' | 'convention' | 'issue' | 'feedback';
+
+export interface ProjectMemory {
+  id: string;
+  projectId: string;
+  kind: MemoryKind;
+  title: string;
+  content: string;
+  source?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface BrowserOption {
   id: string;
   name: string;

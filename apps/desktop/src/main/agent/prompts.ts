@@ -10,6 +10,7 @@ export interface PromptContext {
   treeSummary: string;
   retrieval: string;
   activeFiles: Array<{ path: string; content: string }>;
+  memory?: string;
   toolNames: string[];
   maxSteps: number;
 }
@@ -91,6 +92,7 @@ If the workspace is empty or the user asks for a new app:
 ## Project rules (follow these)
 ${rules || 'No project rule files found.'}
 
+${context.memory ? `## Project memory & conventions (persistent user knowledge)\n${context.memory}\n` : ''}
 ## Project structure (abridged)
 ${context.treeSummary || 'No tree available.'}
 

@@ -149,6 +149,11 @@ const api: ForgeApi = {
     restore: (projectId, checkpointId) => invoke('checkpoints:restore', projectId, checkpointId),
     diff: (projectId, checkpointId) => invoke('checkpoints:diff', projectId, checkpointId),
   },
+  memory: {
+    list: (projectId, kind) => invoke('memory:list', projectId, kind),
+    save: (memory) => invoke('memory:save', memory),
+    remove: (id) => invoke('memory:remove', id),
+  },
   events: {
     on: <K extends ForgeEventName>(event: K, callback: (payload: ForgeEvents[K]) => void) => {
       if (!EVENT_NAMES.has(event)) throw new Error(`Unknown event: ${event}`);

@@ -744,6 +744,31 @@ export function registerIpc(ctx: AppContext): () => void {
     return ctx.checkpoints.diff(str(projectId, 'projectId'), str(checkpointId, 'checkpointId'));
   });
 
+  // ── Project Memory & Decisions ──────────────────────────────────────────
+  handle('memory:list', (projectId: unknown, kind: unknown) =>
+    ctx.db.listProjectMemory(
+      requireProject(ctx, projectId),
+      typeof kind === 'string' ? kind : undefined,
+    ),
+  );
+  handle('memory:save', (input: unknown) => {
+    const raw = (input ?? {}) as any;
+    const projectId = requireProject(ctx, raw.projectId);
+    const memory = {
+      id: raw.id || `mem-${Math.random().toString(36).slice(2, 10)}`,
+      projectId,
+      kind: raw.kind || 'convention',
+      title: str(raw.title, 'title'),
+      content: str(raw.content, 'content'),
+      source: typeof raw.source === 'string' ? raw.source : undefined,
+      createdAt: raw.createdAt || Date.now(),
+      updatedAt: Date.now(),
+    };
+    ctx.db.upsertProjectMemory(memory);
+    return memory;
+  });
+  handle('memory:remove', (id: unknown) => ctx.db.deleteProjectMemory(str(id, 'id')));
+
   return () => {
     for (const controller of streams.values()) controller.abort(new Error('Application is shutting down'));
     streams.clear();

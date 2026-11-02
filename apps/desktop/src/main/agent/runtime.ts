@@ -181,6 +181,11 @@ export class AgentRuntimeService {
         }
       }
 
+      const projectMemories = this.db.listProjectMemory(request.projectId);
+      const memoryContext = projectMemories.length > 0
+        ? projectMemories.map((m) => `[${m.kind.toUpperCase()}] ${m.title}: ${m.content}`).join('\n')
+        : undefined;
+
       const systemPrompt = buildSystemPrompt({
         agent,
         workspaceName: this.workspace.project.name,
@@ -190,6 +195,7 @@ export class AgentRuntimeService {
         treeSummary: compactFileTree(files, 200),
         retrieval,
         activeFiles,
+        memory: memoryContext,
         toolNames: this.registry.names(agent),
         maxSteps,
       });

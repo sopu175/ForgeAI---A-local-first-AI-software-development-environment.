@@ -15,6 +15,7 @@ import type {
   StoredMessage,
   UsageStats,
   ChatRole,
+  ProjectMemory,
 } from '@forgeai/shared';
 
 interface ProjectRow {
@@ -242,6 +243,17 @@ CREATE TABLE IF NOT EXISTS spec_state (
   meta TEXT NOT NULL,
   PRIMARY KEY (project_id, feature)
 );
+CREATE TABLE IF NOT EXISTS project_memory (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  source TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_project_memory ON project_memory(project_id, kind);
 PRAGMA user_version = 1;
 `;
 
@@ -865,6 +877,52 @@ export class Database {
 
   deleteSpecMeta(projectId: string, feature: string): void {
     this.run('DELETE FROM spec_state WHERE project_id = ? AND feature = ?', projectId, feature);
+  }
+
+  listProjectMemory(projectId: string, kind?: string): ProjectMemory[] {
+    const query = kind
+      ? 'SELECT * FROM project_memory WHERE project_id = ? AND kind = ? ORDER BY updated_at DESC'
+      : 'SELECT * FROM project_memory WHERE project_id = ? ORDER BY updated_at DESC';
+    const stmt = this.db.prepare(query);
+    const rows = (kind ? stmt.all(projectId, kind) : stmt.all(projectId)) as any[];
+    return rows.map((r) => ({
+      id: r.id,
+      projectId: r.project_id,
+      kind: r.kind,
+      title: r.title,
+      content: r.content,
+      source: r.source ?? undefined,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    }));
+  }
+
+  upsertProjectMemory(memory: ProjectMemory): void {
+    const stmt = this.db.prepare(`
+      INSERT INTO project_memory (id, project_id, kind, title, content, source, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        kind = excluded.kind,
+        title = excluded.title,
+        content = excluded.content,
+        source = excluded.source,
+        updated_at = excluded.updated_at
+    `);
+    stmt.run(
+      memory.id,
+      memory.projectId,
+      memory.kind,
+      memory.title,
+      memory.content,
+      memory.source ?? null,
+      memory.createdAt,
+      memory.updatedAt,
+    );
+  }
+
+  deleteProjectMemory(id: string): void {
+    const stmt = this.db.prepare('DELETE FROM project_memory WHERE id = ?');
+    stmt.run(id);
   }
 
   recentGitLog(): GitLogEntry[] {

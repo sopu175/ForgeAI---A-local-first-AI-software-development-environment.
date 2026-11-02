@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   BookOpen,
+  Brain,
   ChevronDown,
   ChevronRight,
   Database,
@@ -11,7 +12,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import type { RetrievalResult } from '@forgeai/shared';
+import type { RetrievalResult, ProjectMemory, MemoryKind } from '@forgeai/shared';
 import { useAppStore } from '../../state/app';
 import { cn, EmptyState, Spinner } from '../ui';
 import { compactPath, errorMessage, pluralize } from '../../lib/format';
@@ -36,6 +37,59 @@ export function ContextPanel() {
   const [results, setResults] = useState<RetrievalResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  const [memories, setMemories] = useState<ProjectMemory[]>([]);
+  const [isAddingMemory, setIsAddingMemory] = useState(false);
+  const [memoryTitle, setMemoryTitle] = useState('');
+  const [memoryContent, setMemoryContent] = useState('');
+  const [memoryKind, setMemoryKind] = useState<MemoryKind>('convention');
+
+  const loadMemories = useCallback(async () => {
+    if (!project) {
+      setMemories([]);
+      return;
+    }
+    try {
+      const list = await window.forge.memory.list(project.id);
+      setMemories(list);
+    } catch {
+      setMemories([]);
+    }
+  }, [project]);
+
+  useEffect(() => {
+    void loadMemories();
+  }, [loadMemories]);
+
+  const handleSaveMemory = async () => {
+    if (!project || !memoryTitle.trim() || !memoryContent.trim()) return;
+    try {
+      await window.forge.memory.save({
+        projectId: project.id,
+        kind: memoryKind,
+        title: memoryTitle.trim(),
+        content: memoryContent.trim(),
+        source: 'user',
+      });
+      setMemoryTitle('');
+      setMemoryContent('');
+      setIsAddingMemory(false);
+      toast('success', 'Project memory saved');
+      void loadMemories();
+    } catch (err) {
+      toast('error', errorMessage(err));
+    }
+  };
+
+  const handleDeleteMemory = async (id: string) => {
+    try {
+      await window.forge.memory.remove(id);
+      toast('info', 'Memory deleted');
+      void loadMemories();
+    } catch (err) {
+      toast('error', errorMessage(err));
+    }
+  };
 
   useEffect(() => {
     setResults([]);
@@ -179,6 +233,122 @@ export function ContextPanel() {
               </div>
             );
           })
+        )}
+      </section>
+
+      <section className="border-b border-line-soft px-3 py-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-faint">Project memory</span>
+          <div className="flex items-center gap-1">
+            <span className="text-[9.5px] text-faint">{memories.length}</span>
+            <button
+              type="button"
+              className="focus-ring rounded p-1 text-faint hover:bg-panel-3 hover:text-fg"
+              onClick={() => setIsAddingMemory((prev) => !prev)}
+              title="Add memory or convention"
+            >
+              <Plus size={11} />
+            </button>
+          </div>
+        </div>
+
+        {isAddingMemory ? (
+          <div className="mt-2 space-y-1.5 rounded border border-line-soft bg-panel-2 p-2">
+            <div className="flex items-center gap-1.5">
+              <input
+                type="text"
+                placeholder="Title (e.g. Auth Architecture)"
+                value={memoryTitle}
+                onChange={(e) => setMemoryTitle(e.target.value)}
+                className="h-6 flex-1 text-[10px]"
+              />
+              <select
+                value={memoryKind}
+                onChange={(e) => setMemoryKind(e.target.value as MemoryKind)}
+                className="h-6 text-[9.5px]"
+              >
+                <option value="convention">Convention</option>
+                <option value="decision">Decision</option>
+                <option value="issue">Issue</option>
+                <option value="feedback">Feedback</option>
+              </select>
+            </div>
+            <textarea
+              placeholder="Content or guidelines for agents to remember..."
+              value={memoryContent}
+              onChange={(e) => setMemoryContent(e.target.value)}
+              className="h-16 w-full resize-none text-[9.5px]"
+            />
+            <div className="flex justify-end gap-1.5">
+              <button
+                type="button"
+                className="btn !h-5 !px-2 !text-[9px]"
+                onClick={() => {
+                  setIsAddingMemory(false);
+                  setMemoryTitle('');
+                  setMemoryContent('');
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary !h-5 !px-2 !text-[9px]"
+                onClick={() => void handleSaveMemory()}
+                disabled={!memoryTitle.trim() || !memoryContent.trim()}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {memories.length === 0 && !isAddingMemory ? (
+          <p className="mt-1 text-[10px] leading-relaxed text-faint">
+            No persistent memory yet. Add conventions, architectural decisions, or feedback for agents.
+          </p>
+        ) : (
+          <div className="mt-1.5 space-y-1">
+            {memories.map((mem) => {
+              const open = expanded[`mem-${mem.id}`] ?? false;
+              return (
+                <div key={mem.id} className="rounded border border-line-soft bg-panel-2">
+                  <div className="flex w-full items-center gap-1.5 px-1.5 py-1">
+                    <button
+                      type="button"
+                      onClick={() => setExpanded((curr) => ({ ...curr, [`mem-${mem.id}`]: !open }))}
+                      className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+                      title={mem.title}
+                    >
+                      {open ? <ChevronDown size={9} className="text-faint" /> : <ChevronRight size={9} className="text-faint" />}
+                      <Brain size={10} className="shrink-0 text-accent" />
+                      <span className="min-w-0 flex-1 truncate text-[10px] text-fg">{mem.title}</span>
+                      <span className="shrink-0 text-[8.5px] uppercase text-faint">{mem.kind}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteMemory(mem.id)}
+                      className="focus-ring rounded p-0.5 text-faint hover:text-danger"
+                      title="Delete memory"
+                    >
+                      <Trash2 size={9} />
+                    </button>
+                  </div>
+                  {open ? (
+                    <div className="border-t border-line-soft p-1.5">
+                      <p className="whitespace-pre-wrap font-mono text-[9px] leading-relaxed text-muted">
+                        {mem.content}
+                      </p>
+                      <div className="mt-1 flex items-center justify-between text-[8px] text-faint">
+                        <span>Source: {mem.source || 'user'}</span>
+                        <span>{new Date(mem.updatedAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
         )}
       </section>
 
