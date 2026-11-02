@@ -35,13 +35,37 @@ export const SECRET_IGNORE = [
   '**/*.pem',
   '**/*.key',
   '**/*.p12',
+  '**/*.pfx',
   '**/id_rsa*',
   '**/id_ed25519*',
+  '**/id_ecdsa*',
+  '**/id_dsa*',
   '**/.npmrc',
   '**/.netrc',
+  '**/.aws/**',
+  '**/.ssh/**',
   '**/credentials.json',
   '**/service-account*.json',
+  '**/secrets.json',
+  '**/secret*.yaml',
+  '**/secret*.yml',
+  '**/*.keystore',
+  '**/*.jks',
 ];
+
+export function isSecretPath(filePath: string): boolean {
+  const norm = filePath.replace(/\\/g, '/').toLowerCase();
+  const base = path.basename(norm);
+  if (base.startsWith('.env')) return true;
+  if (/^id_(rsa|ed25519|ecdsa|dsa)/.test(base)) return true;
+  if (/\.(pem|key|p12|pfx|keystore|jks)$/.test(base)) return true;
+  if (base === '.npmrc' || base === '.netrc' || base === 'credentials.json') return true;
+  if (base.startsWith('service-account') && base.endsWith('.json')) return true;
+  if (base === 'secrets.json' || /^secret.*\.(yaml|yml)$/.test(base)) return true;
+  if (norm.includes('/.aws/') || norm.startsWith('.aws/')) return true;
+  if (norm.includes('/.ssh/') || norm.startsWith('.ssh/')) return true;
+  return false;
+}
 
 export interface ScannedFile {
   path: string;

@@ -185,7 +185,7 @@ export class WorkspaceService {
     }
   }
 
-  private isIgnored(relative: string): boolean {
+  isIgnored(relative: string): boolean {
     const segments = relative.split('/');
     if (segments.some((segment) => IGNORED_DIRS.has(segment))) return true;
     try {

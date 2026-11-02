@@ -96,4 +96,26 @@ describe('vector helpers', () => {
     expect(results).toHaveLength(1);
     expect(results[0]?.id).toBe('a');
   });
+
+  it('correctly identifies and filters secret files and credentials', async () => {
+    const { isSecretPath } = await import('@forgeai/core');
+    expect(isSecretPath('.env')).toBe(true);
+    expect(isSecretPath('.env.local')).toBe(true);
+    expect(isSecretPath('.env.production')).toBe(true);
+    expect(isSecretPath('src/config/.env.test')).toBe(true);
+    expect(isSecretPath('id_rsa')).toBe(true);
+    expect(isSecretPath('id_ed25519')).toBe(true);
+    expect(isSecretPath('.ssh/id_rsa.pub')).toBe(true);
+    expect(isSecretPath('server.key')).toBe(true);
+    expect(isSecretPath('cert.pem')).toBe(true);
+    expect(isSecretPath('service-account.json')).toBe(true);
+    expect(isSecretPath('.aws/credentials')).toBe(true);
+    expect(isSecretPath('.npmrc')).toBe(true);
+
+    // Normal source files must not be blocked
+    expect(isSecretPath('src/index.ts')).toBe(false);
+    expect(isSecretPath('packages/core/src/parser.ts')).toBe(false);
+    expect(isSecretPath('README.md')).toBe(false);
+    expect(isSecretPath('package.json')).toBe(false);
+  });
 });

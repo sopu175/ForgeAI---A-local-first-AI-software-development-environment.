@@ -11,6 +11,7 @@ import {
   rankByVector,
   fileOverlapBoost,
   scanProject,
+  isSecretPath,
   vectorToBlob,
   type VectorCandidate,
 } from '@forgeai/core';
@@ -439,6 +440,10 @@ export class IndexerService {
     for (const event of events) {
       if (event.type === 'addDir' || event.type === 'unlinkDir') continue;
       if (isBinaryName(event.path)) continue;
+      if (isSecretPath(event.path) || this.workspace.isIgnored(event.path)) {
+        this.db.deleteIndexedFile(projectId, event.path);
+        continue;
+      }
       pending.add(event.path);
     }
     this.pendingPaths.set(projectId, pending);
@@ -458,6 +463,10 @@ export class IndexerService {
     if (this.workspace.projectId !== projectId) return;
     const root = this.workspace.root;
     for (const relative of paths.slice(0, 100)) {
+      if (isSecretPath(relative) || this.workspace.isIgnored(relative)) {
+        this.db.deleteIndexedFile(projectId, relative);
+        continue;
+      }
       const absolute = path.join(root, relative);
       try {
         const stat = await fs.stat(absolute);
