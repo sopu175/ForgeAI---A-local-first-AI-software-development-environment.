@@ -32,20 +32,30 @@ type Tab = 'models' | 'providers' | 'roles';
 
 const ROLE_LABELS: Record<ModelRole, string> = {
   chat: 'Chat',
-  plan: 'Planning',
-  coding: 'Coding agent',
-  review: 'Review',
-  fast: 'Fast / completions',
-  embedding: 'Embeddings',
+  plan: 'Planning & architecture',
+  coding: 'General coding',
+  frontend: 'Frontend & UI engineering',
+  animation: 'Motion, GSAP & 3D',
+  backend: 'Backend, APIs & database',
+  seo: 'Technical SEO & audit',
+  testing: 'Testing & test execution',
+  review: 'Code review & critique',
+  fast: 'Fast / inline completions',
+  embedding: 'Codebase embeddings',
 };
 
 const ROLE_HINTS: Record<ModelRole, string> = {
-  chat: 'Conversational answers and explanations.',
-  plan: 'Requirements and design generation.',
-  coding: 'Autonomous coding agent and tool calling.',
-  review: 'Diff review, debugging and critique.',
-  fast: 'Inline completion and quick edits.',
-  embedding: 'Project indexing and semantic search.',
+  chat: 'Conversational answers, explanations, and general code queries.',
+  plan: 'Requirements, architecture, spec documents, and ordered task plans.',
+  coding: 'Autonomous coding agent, tools, and multi-file refactoring.',
+  frontend: 'React, Next.js, UI components, layout styling, and accessibility.',
+  animation: 'GSAP, ScrollTrigger, Three.js, Framer Motion, and CSS transitions.',
+  backend: 'Server-side logic, API endpoints, auth, and database schemas.',
+  seo: 'Technical SEO, metadata, Open Graph, canonical URLs, and structured data.',
+  testing: 'Unit, integration, test runner commands, and regression checks.',
+  review: 'Diff review, bug detection, security checks, and code quality.',
+  fast: 'Inline completions, quick edits, and commit message generation.',
+  embedding: 'Semantic codebase search, vector storage, and hybrid RAG.',
 };
 
 const KIND_LABELS: Record<ProviderKind, string> = {

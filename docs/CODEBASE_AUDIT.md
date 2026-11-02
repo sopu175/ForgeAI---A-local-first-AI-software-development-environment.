@@ -172,3 +172,4 @@ sopu-agent-ai/
 2. **Short-Term (Task 03 - 04):** Enhance incremental indexing, add `.gitignore` hot-reloading on workspace refresh, and implement the intelligent `ModelRouter`.
 3. **Mid-Term (Task 05 - 07):** Build the multi-agent orchestrator with explicit handoff contracts between Planner, Frontend, Animation, Backend, and Review agents, and add persistent project memory.
 4. **Final (Task 08 - 10):** Benchmark memory under 16GB limits, conduct security hardening, and generate formal release checklists.
+

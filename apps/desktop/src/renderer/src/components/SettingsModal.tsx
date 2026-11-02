@@ -44,8 +44,13 @@ type SectionId = (typeof SECTIONS)[number]['id'];
 const ROLE_LABEL: Record<ModelRole, string> = {
   chat: 'Chat',
   plan: 'Planning & specs',
-  coding: 'Coding agent',
-  review: 'Review',
+  coding: 'General coding',
+  frontend: 'Frontend & UI',
+  animation: 'Motion & animation',
+  backend: 'Backend & APIs',
+  seo: 'Technical SEO',
+  testing: 'Testing & QA',
+  review: 'Review & critique',
   fast: 'Fast tasks',
   embedding: 'Embeddings',
 };
@@ -53,10 +58,15 @@ const ROLE_LABEL: Record<ModelRole, string> = {
 const ROLE_HINT: Record<ModelRole, string> = {
   chat: 'Conversational answers and explanations.',
   plan: 'Writes requirements, design docs and task plans.',
-  coding: 'Drives the coding, debugging and testing agents.',
+  coding: 'Drives autonomous coding and tool calling.',
+  frontend: 'React, Next.js, component architecture and responsive design.',
+  animation: 'GSAP, Three.js, motion design and interactive animations.',
+  backend: 'API routes, server-side data, auth and databases.',
+  seo: 'Technical SEO audits, metadata and schema markup.',
+  testing: 'Generates and executes unit, integration, and E2E tests.',
   review: 'Reviews diffs and uncommitted changes.',
-  fast: 'Commit messages, titles and short utilities.',
-  embedding: 'Builds the vector index for retrieval.',
+  fast: 'Commit messages, inline completions and short utilities.',
+  embedding: 'Builds the vector index for semantic retrieval.',
 };
 
 export function SettingsModal() {

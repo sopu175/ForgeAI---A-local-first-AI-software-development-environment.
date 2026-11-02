@@ -44,10 +44,10 @@ const ROLE_FOR_AGENT: Record<AgentKind, ModelRole> = {
   coding: 'coding',
   planner: 'plan',
   debugging: 'coding',
-  testing: 'coding',
+  testing: 'testing',
   review: 'review',
   docs: 'chat',
-  seo: 'coding',
+  seo: 'seo',
 };
 
 export class AgentRuntimeService {

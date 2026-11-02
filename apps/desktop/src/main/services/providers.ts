@@ -282,6 +282,11 @@ export class ProvidersService {
               chat: { providerId: 'ollama', model: 'sopu-coder' },
               coding: { providerId: 'ollama', model: 'sopu-coder' },
               plan: { providerId: 'ollama', model: 'sopu-coder' },
+              frontend: { providerId: 'ollama', model: 'sopu-coder' },
+              animation: { providerId: 'ollama', model: 'sopu-coder' },
+              backend: { providerId: 'ollama', model: 'sopu-coder' },
+              seo: { providerId: 'ollama', model: 'sopu-coder' },
+              testing: { providerId: 'ollama', model: 'sopu-coder' },
               review: { providerId: 'ollama', model: 'sopu-coder' },
             },
           });

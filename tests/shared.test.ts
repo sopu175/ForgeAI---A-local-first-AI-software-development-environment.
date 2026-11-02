@@ -101,4 +101,44 @@ describe('model helpers', () => {
     expect(guessCapabilities('nomic-embed-text').completion).toBe(false);
     expect(guessCapabilities('qwen3:8b').thinking).toBe(true);
   });
+
+  it('recommends all 10 specialist roles based on installed models', async () => {
+    const { recommendRoles } = await import('@forgeai/shared');
+    const mockModels = [
+      {
+        id: 'sopu-coder',
+        name: 'Sopu Coder',
+        providerId: 'ollama',
+        installed: true,
+        capabilities: { chat: true, streaming: true, tools: true, embedding: false, thinking: false, completion: true },
+      },
+      {
+        id: 'sopu-coder-fast',
+        name: 'Sopu Coder Fast',
+        providerId: 'ollama',
+        installed: true,
+        capabilities: { chat: true, streaming: true, tools: true, embedding: false, thinking: false, completion: true },
+      },
+      {
+        id: 'nomic-embed-text',
+        name: 'Nomic Embed Text',
+        providerId: 'ollama',
+        installed: true,
+        capabilities: { chat: false, streaming: false, tools: false, embedding: true, thinking: false, completion: false },
+      },
+    ];
+
+    const roles = recommendRoles(mockModels);
+    expect(roles.coding?.model).toBe('sopu-coder');
+    expect(roles.chat?.model).toBe('sopu-coder');
+    expect(roles.plan?.model).toBe('sopu-coder');
+    expect(roles.frontend?.model).toBe('sopu-coder');
+    expect(roles.animation?.model).toBe('sopu-coder');
+    expect(roles.backend?.model).toBe('sopu-coder');
+    expect(roles.seo?.model).toBe('sopu-coder');
+    expect(roles.testing?.model).toBe('sopu-coder');
+    expect(roles.review?.model).toBe('sopu-coder');
+    expect(roles.fast?.model).toBe('sopu-coder-fast');
+    expect(roles.embedding?.model).toBe('nomic-embed-text');
+  });
 });

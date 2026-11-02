@@ -223,14 +223,14 @@ export const RECOMMENDED_DOWNLOADS: RecommendedDownload[] = [
     model: DEFAULT_OLLAMA_MODEL,
     label: 'Qwen3.5 4B (Lightweight Baseline)',
     size: '~3.3 GB',
-    roles: ['chat', 'coding', 'plan', 'fast', 'review'],
+    roles: ['chat', 'coding', 'plan', 'frontend', 'backend', 'fast', 'review', 'testing'],
     note: 'Ultra-fast (18+ tok/s) lightweight resident model for quick edits and completions.',
   },
   {
     model: 'sopu-coder',
     label: 'Sopu Coder (Trained Primary Coding Model)',
     size: '~4.7 GB',
-    roles: ['coding', 'chat', 'plan', 'review'],
+    roles: ['coding', 'chat', 'plan', 'frontend', 'animation', 'backend', 'seo', 'testing', 'review'],
     note: 'Custom Sopu AI trained Modelfile model (qwen2.5-coder:7b + 8K ctx, 4096 predict, full-stack React/Next/PHP/Python system instruction).',
   },
   {
@@ -244,14 +244,14 @@ export const RECOMMENDED_DOWNLOADS: RecommendedDownload[] = [
     model: 'qwen2.5-coder:7b',
     label: 'Qwen2.5 Coder 7B (Base Weights)',
     size: '~4.7 GB',
-    roles: ['coding', 'chat', 'plan', 'review'],
+    roles: ['coding', 'chat', 'plan', 'frontend', 'animation', 'backend', 'seo', 'testing', 'review'],
     note: 'Optimal balance of speed (13.4 tok/s), 8K context headroom, and low 4.8GB VRAM footprint.',
   },
   {
     model: 'qwen2.5-coder:14b',
     label: 'Qwen2.5 Coder 14B',
     size: '~9.0 GB',
-    roles: ['coding', 'chat'],
+    roles: ['coding', 'chat', 'frontend', 'backend'],
     note: 'High-capacity model (caution on 16GB machines: consumes 9.5GB VRAM at 8K ctx).',
   },
   {
@@ -298,10 +298,16 @@ export function recommendRoles(models: ModelInfo[]): Partial<Record<ModelRole, {
     coderModel;
 
   if (coderModel) {
-    result.coding = { providerId: coderModel.providerId, model: coderModel.id };
-    result.chat = { providerId: coderModel.providerId, model: coderModel.id };
-    result.plan = { providerId: coderModel.providerId, model: coderModel.id };
-    result.review = { providerId: coderModel.providerId, model: coderModel.id };
+    const binding = { providerId: coderModel.providerId, model: coderModel.id };
+    result.coding = binding;
+    result.chat = binding;
+    result.plan = binding;
+    result.frontend = binding;
+    result.animation = binding;
+    result.backend = binding;
+    result.seo = binding;
+    result.testing = binding;
+    result.review = binding;
   }
 
   if (fastModel) {

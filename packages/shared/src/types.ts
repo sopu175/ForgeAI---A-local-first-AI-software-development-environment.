@@ -151,7 +151,18 @@ export interface EmbedResponse {
   dim: number;
 }
 
-export type ModelRole = 'chat' | 'plan' | 'coding' | 'review' | 'fast' | 'embedding';
+export type ModelRole =
+  | 'chat'
+  | 'plan'
+  | 'coding'
+  | 'frontend'
+  | 'animation'
+  | 'backend'
+  | 'seo'
+  | 'testing'
+  | 'review'
+  | 'fast'
+  | 'embedding';
 
 export interface RoleBinding {
   providerId: string;
