@@ -73,7 +73,7 @@ export function Welcome() {
 
   if (project) {
     return (
-      <div className="flex h-full items-start justify-center overflow-auto px-6 py-10">
+      <div className="flex h-full items-start justify-center overflow-auto px-6 py-5 sm:py-8">
         <div className="w-full max-w-[640px]">
           <div className="mb-6 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#007acc] text-[19px] font-black text-white shadow-soft">

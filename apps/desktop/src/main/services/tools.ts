@@ -14,6 +14,11 @@ import type { ProvidersService } from './providers';
 import type { SettingsService } from './settings';
 import type { Broadcast, WorkspaceService } from './workspace';
 
+function cleanAnsi(text: string): string {
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '').replace(/\[\?[0-9;]*[a-zA-Z]/g, '').replace(/\[\d*G/g, '').replace(/\[K/g, '');
+}
+
 function findExecutable(name: string): string {
   const isWin = process.platform === 'win32';
   const binName = isWin ? `${name}.exe` : name;
@@ -741,13 +746,15 @@ Please provide a concise, high-value Technical Diagnosis and Recommended Solutio
         proc.stdout?.on('data', (data) => {
           const str = data.toString();
           output += str;
-          this.broadcast('models:train:log', { text: str, stream: 'stdout' });
+          const cleaned = cleanAnsi(str).trim();
+          if (cleaned) this.broadcast('models:train:log', { text: cleaned, stream: 'stdout' });
         });
 
         proc.stderr?.on('data', (data) => {
           const str = data.toString();
           output += str;
-          this.broadcast('models:train:log', { text: str, stream: 'stderr' });
+          const cleaned = cleanAnsi(str).trim();
+          if (cleaned) this.broadcast('models:train:log', { text: cleaned, stream: 'stderr' });
         });
 
         proc.on('close', async (code) => {
@@ -877,13 +884,15 @@ if __name__ == '__main__':
         proc.stdout?.on('data', (data) => {
           const str = data.toString();
           output += str;
-          this.broadcast('models:train:log', { text: str, stream: 'stdout' });
+          const cleaned = cleanAnsi(str).trim();
+          if (cleaned) this.broadcast('models:train:log', { text: cleaned, stream: 'stdout' });
         });
 
         proc.stderr?.on('data', (data) => {
           const str = data.toString();
           output += str;
-          this.broadcast('models:train:log', { text: str, stream: 'stderr' });
+          const cleaned = cleanAnsi(str).trim();
+          if (cleaned) this.broadcast('models:train:log', { text: cleaned, stream: 'stderr' });
         });
 
         proc.on('close', (code) => {

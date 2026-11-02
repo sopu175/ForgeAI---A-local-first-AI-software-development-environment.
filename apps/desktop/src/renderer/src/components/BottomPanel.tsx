@@ -5,6 +5,8 @@ import {
   ChevronRight,
   Copy,
   GitBranch,
+  Maximize2,
+  Minimize2,
   Play,
   RefreshCw,
   Sparkles,
@@ -49,6 +51,7 @@ export function BottomPanel() {
     }
   });
   const [isResizing, setIsResizing] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
     if (tab === 'terminal') setTerminalMounted(true);
@@ -79,22 +82,28 @@ export function BottomPanel() {
   const warningCount = problems.filter((problem) => problem.severity === 'warning').length;
 
   return (
-    <section className="bottom-panel relative app-no-drag" style={{ height: panelHeight }} aria-label="Panel">
+    <section
+      className="bottom-panel relative app-no-drag"
+      style={{ height: isMaximized ? 'calc(100vh - 110px)' : panelHeight }}
+      aria-label="Panel"
+    >
       {/* Top resize handle */}
-      <div
-        onMouseDown={(e) => {
-          e.preventDefault();
-          setIsResizing(true);
-        }}
-        onDoubleClick={() => {
-          setPanelHeight(260);
-          try {
-            localStorage.setItem('forgeai:bottom-panel-height', '260');
-          } catch {}
-        }}
-        className="absolute inset-x-0 -top-1 h-2 cursor-row-resize hover:bg-accent/40 active:bg-accent transition-colors z-20"
-        title="Drag to resize panel (double-click to reset)"
-      />
+      {!isMaximized ? (
+        <div
+          onMouseDown={(e) => {
+            e.preventDefault();
+            setIsResizing(true);
+          }}
+          onDoubleClick={() => {
+            setPanelHeight(260);
+            try {
+              localStorage.setItem('forgeai:bottom-panel-height', '260');
+            } catch {}
+          }}
+          className="absolute inset-x-0 -top-1 h-2 cursor-row-resize hover:bg-accent/40 active:bg-accent transition-colors z-20"
+          title="Drag to resize panel (double-click to reset)"
+        />
+      ) : null}
       <div className="flex h-8 flex-none items-center gap-0.5 border-b border-line-soft px-2">
         {TABS.map((entry) => (
           <button
@@ -124,6 +133,14 @@ export function BottomPanel() {
               {errorCount} errors · {warningCount} warnings
             </span>
           ) : null}
+          <button
+            type="button"
+            className="focus-ring rounded p-1 text-faint hover:bg-panel-3 hover:text-fg"
+            onClick={() => setIsMaximized((prev) => !prev)}
+            title={isMaximized ? 'Restore panel size' : 'Maximize panel'}
+          >
+            {isMaximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+          </button>
           <button
             type="button"
             className="focus-ring rounded p-1 text-faint hover:bg-panel-3 hover:text-fg"

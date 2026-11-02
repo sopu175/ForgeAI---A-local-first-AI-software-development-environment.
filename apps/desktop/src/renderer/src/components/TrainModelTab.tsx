@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  Check,
+  Copy,
   Cpu,
   Database,
   Download,
@@ -8,21 +10,25 @@ import {
   RefreshCw,
   Sparkles,
   Terminal,
+  TerminalSquare,
   Trash2,
 } from 'lucide-react';
 import type { ModelTrainingStats } from '@forgeai/shared';
 import { useAppStore } from '../state/app';
 import { errorMessage } from '../lib/format';
+import { requestTerminalCommand } from '../lib/terminalBus';
 import { SectionLabel, Spinner, StatusDot } from './ui';
 
 export function TrainModelTab() {
   const toast = useAppStore((state) => state.toast);
   const refreshModels = useAppStore((state) => state.refreshModels);
+  const showBottom = useAppStore((state) => state.showBottom);
   const [stats, setStats] = useState<ModelTrainingStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState('sopu-coder');
   const [isTraining, setIsTraining] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
   const [logs, setLogs] = useState<Array<{ text: string; stream: 'stdout' | 'stderr'; time: string }>>([
     {
       text: '[Sopu AI Engine] Model Training & Customization Console initialized.',
@@ -52,10 +58,18 @@ export function TrainModelTab() {
     void refreshStats();
 
     const off = window.forge.events.on('models:train:log', (entry) => {
+      const clean = entry.text
+        // eslint-disable-next-line no-control-regex
+        .replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '')
+        .replace(/\[\?[0-9;]*[a-zA-Z]/g, '')
+        .replace(/\[\d*G/g, '')
+        .replace(/\[K/g, '')
+        .trim();
+      if (!clean) return;
       setLogs((prev) => [
         ...prev.slice(-400),
         {
-          text: entry.text,
+          text: clean,
           stream: entry.stream ?? 'stdout',
           time: new Date().toLocaleTimeString(),
         },
@@ -283,6 +297,88 @@ export function TrainModelTab() {
           >
             {isTraining ? <Spinner className="!h-3 !w-3" /> : <Play size={12} />} Run LoRA Training
           </button>
+        </div>
+      </div>
+
+      {/* Terminal CLI Guide */}
+      <div>
+        <SectionLabel>3. Train via Terminal (CLI)</SectionLabel>
+        <div className="card p-3 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="text-[12px] font-medium text-fg flex items-center gap-1.5">
+              <TerminalSquare size={13} className="text-accent" />
+              Integrated &amp; External Terminal Commands
+            </div>
+            <span className="text-[10px] text-faint">Copy or run directly in shell</span>
+          </div>
+
+          <div className="space-y-2">
+            <div className="rounded bg-panel-2 p-2 text-[11px] font-mono flex items-center justify-between gap-2 border border-line-soft">
+              <div className="min-w-0 flex-1 truncate">
+                <span className="text-accent select-none">$ </span>
+                <span className="text-fg">ollama create sopu-coder -f training/recipes/Modelfile.sopu-coder</span>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  className="btn btn-ghost h-6 px-1.5 text-[10px]"
+                  title="Run in Integrated Terminal"
+                  onClick={() => {
+                    showBottom('terminal');
+                    requestTerminalCommand('ollama create sopu-coder -f training/recipes/Modelfile.sopu-coder');
+                    toast('info', 'Command dispatched to Terminal');
+                  }}
+                >
+                  <Play size={10} className="text-success" /> Run
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost h-6 px-1.5 text-[10px]"
+                  title="Copy command"
+                  onClick={() => {
+                    void navigator.clipboard.writeText('ollama create sopu-coder -f training/recipes/Modelfile.sopu-coder');
+                    setCopiedCmd('recipe');
+                    setTimeout(() => setCopiedCmd(null), 2000);
+                  }}
+                >
+                  {copiedCmd === 'recipe' ? <Check size={10} className="text-success" /> : <Copy size={10} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded bg-panel-2 p-2 text-[11px] font-mono flex items-center justify-between gap-2 border border-line-soft">
+              <div className="min-w-0 flex-1 truncate">
+                <span className="text-accent select-none">$ </span>
+                <span className="text-fg">python3 training/train_lora.py --model qwen2.5-coder:7b --dataset training/train.jsonl</span>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  className="btn btn-ghost h-6 px-1.5 text-[10px]"
+                  title="Run in Integrated Terminal"
+                  onClick={() => {
+                    showBottom('terminal');
+                    requestTerminalCommand('python3 training/train_lora.py --model qwen2.5-coder:7b --dataset training/train.jsonl');
+                    toast('info', 'Command dispatched to Terminal');
+                  }}
+                >
+                  <Play size={10} className="text-success" /> Run
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost h-6 px-1.5 text-[10px]"
+                  title="Copy command"
+                  onClick={() => {
+                    void navigator.clipboard.writeText('python3 training/train_lora.py --model qwen2.5-coder:7b --dataset training/train.jsonl');
+                    setCopiedCmd('lora');
+                    setTimeout(() => setCopiedCmd(null), 2000);
+                  }}
+                >
+                  {copiedCmd === 'lora' ? <Check size={10} className="text-success" /> : <Copy size={10} />}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
