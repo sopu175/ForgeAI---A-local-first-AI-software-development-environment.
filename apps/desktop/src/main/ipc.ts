@@ -379,7 +379,11 @@ export function registerIpc(ctx: AppContext): () => void {
     };
     const settings = ctx.settings.get();
     if (!settings.completion.enabled) throw new Error('Inline completion is disabled in settings');
-    const binding = await ctx.providers.resolveChat({ providerId: args.providerId, model: args.model });
+    // Prefer fast completion model (e.g. sopu-coder-fast / 4b) for instant autocomplete; fall back to chat
+    const binding =
+      args.providerId && args.model
+        ? { providerId: args.providerId, model: args.model }
+        : await ctx.providers.resolveRole('fast').catch(() => ctx.providers.resolveChat());
     const providerConfig = ctx.providers.list().find((item) => item.id === binding.providerId);
     const response = await collectChat(ctx, {
       providerId: binding.providerId,

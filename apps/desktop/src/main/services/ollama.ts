@@ -408,6 +408,9 @@ export class OllamaRuntime {
         OLLAMA_MAX_LOADED_MODELS: '1',
         // Faster prefill/decode on Metal and CUDA.
         OLLAMA_FLASH_ATTENTION: '1',
+        // Quantized 8-bit KV cache cuts context RAM in half on Apple Silicon.
+        OLLAMA_KV_CACHE_TYPE: 'q8_0',
+        OLLAMA_CONTEXT_LENGTH: '8192',
       },
       stdio: ['ignore', fd, fd],
       windowsHide: true,

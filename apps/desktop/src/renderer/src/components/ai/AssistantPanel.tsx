@@ -109,6 +109,7 @@ export function AssistantPanel() {
   const startAgent = useAppStore((state) => state.startAgent);
   const cancelAgent = useAppStore((state) => state.cancelAgent);
   const dismissAgentRun = useAppStore((state) => state.dismissAgentRun);
+  const setModelsOpen = useAppStore((state) => state.setModelsOpen);
   const settings = useAppStore((state) => state.settings);
 
   const [input, setInput] = useState('');
@@ -273,12 +274,18 @@ export function AssistantPanel() {
         >
           <MessageSquarePlus size={13} />
         </button>
-        <span
-          className="chip !h-[18px] !text-[9.5px]"
-          title={selectedModel ? `${selectedModel.providerId}/${selectedModel.model}` : 'No chat model'}
+        <button
+          type="button"
+          onClick={() => setModelsOpen(true)}
+          className="chip !h-[18px] !text-[9.5px] cursor-pointer transition-colors hover:border-accent hover:text-accent"
+          title={
+            selectedModel
+              ? `${selectedModel.providerId}/${selectedModel.model} · Click to manage models & providers`
+              : 'Click to select or install a model'
+          }
         >
-          {selectedModel ? shortModelName(selectedModel.model) : 'no model'}
-        </span>
+          {selectedModel ? shortModelName(selectedModel.model) : 'select model'}
+        </button>
       </div>
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
@@ -290,6 +297,7 @@ export function AssistantPanel() {
             selectedModel={selectedModel}
             chatSuggestions={chatSuggestions}
             agentTemplates={AGENT_TEMPLATES}
+            onOpenModels={() => setModelsOpen(true)}
             onSendChat={(text) => void sendChat(text)}
             onSetInput={setInput}
           />
@@ -644,6 +652,7 @@ function WelcomeScreen({
   selectedModel,
   chatSuggestions,
   agentTemplates,
+  onOpenModels,
   onSendChat,
   onSetInput,
 }: {
@@ -653,6 +662,7 @@ function WelcomeScreen({
   selectedModel: { model: string; providerId: string } | null;
   chatSuggestions: string[];
   agentTemplates: Partial<Record<AgentKind, string[]>>;
+  onOpenModels: () => void;
   onSendChat: (text: string) => void;
   onSetInput: (text: string) => void;
 }) {
@@ -680,10 +690,15 @@ function WelcomeScreen({
               : 'Open a project for full codebase context, or ask any coding question right now.'}
         </p>
         {modelLabel ? (
-          <span className="mt-0.5 flex items-center gap-1 rounded-full border border-accent/30 bg-accent/8 px-2 py-0.5 text-[9.5px] font-medium text-accent">
+          <button
+            type="button"
+            onClick={onOpenModels}
+            className="mt-0.5 flex items-center gap-1 rounded-full border border-accent/30 bg-accent/8 px-2 py-0.5 text-[9.5px] font-medium text-accent hover:border-accent hover:bg-accent/15 transition-colors cursor-pointer"
+            title="Click to change or configure models"
+          >
             <Zap size={9} />
             {modelLabel}
-          </span>
+          </button>
         ) : null}
       </div>
 

@@ -289,7 +289,8 @@ export class ProvidersService {
     if (!provider.deleteModel) throw new Error('This provider does not support removing models');
     const targets = models
       .filter((model) => model.providerId === providerId)
-      .filter((model) => !wanted.has(model.id.replace(/:latest$/, '')));
+      .filter((model) => !wanted.has(model.id.replace(/:latest$/, '')))
+      .filter((model) => !model.capabilities.embedding);
     const removed: string[] = [];
     for (const model of targets) {
       try {

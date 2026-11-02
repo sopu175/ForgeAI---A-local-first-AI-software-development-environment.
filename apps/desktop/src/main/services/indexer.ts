@@ -302,6 +302,8 @@ export class IndexerService {
         failures += 1;
         if (signal.aborted) return;
         status.message = `Embedding batch failed: ${error instanceof Error ? error.message : String(error)}`;
+        // Brief backoff so a busy local model or rate limit recovers rather than failing the entire file set
+        await new Promise((resolve) => setTimeout(resolve, 300));
       }
       status.embedded = embedded;
       status.chunks = this.db.countIndex(projectId).chunks;

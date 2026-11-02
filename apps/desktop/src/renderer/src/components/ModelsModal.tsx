@@ -210,13 +210,14 @@ export function ModelsModal() {
     const others = installed.filter(
       (model) =>
         model.providerId === ollama.id &&
-        model.id.replace(/:latest$/, '') !== DEFAULT_OLLAMA_MODEL.replace(/:latest$/, ''),
+        model.id.replace(/:latest$/, '') !== DEFAULT_OLLAMA_MODEL.replace(/:latest$/, '') &&
+        !model.capabilities.embedding,
     );
     if (others.length === 0) return;
     askConfirm({
-      title: `Keep only ${shortModelName(DEFAULT_OLLAMA_MODEL)}?`,
-      message: `This deletes ${others.length} other model${others.length === 1 ? '' : 's'} from Ollama. Chat, coding, planning, review and fast tasks are rebound to ${DEFAULT_OLLAMA_MODEL}. An embedding model is removed too, so vector search falls back to keyword retrieval.`,
-      confirmLabel: 'Delete other models',
+      title: `Clean up older Ollama models?`,
+      message: `This removes ${others.length} inactive chat model${others.length === 1 ? '' : 's'} to free disk space. Embedding models (vector search) and resident models are preserved.`,
+      confirmLabel: 'Clean up models',
       danger: true,
       action: async () => {
         try {

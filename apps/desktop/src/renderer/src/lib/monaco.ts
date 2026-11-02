@@ -213,6 +213,18 @@ function registerInlineCompletions(): void {
           endColumn: model.getLineMaxColumn(model.getLineCount()),
         });
         if (prefix.length < 3) return { items: [] };
+
+        // Keystroke debounce: wait debounceMs and abort if typing continues
+        const debounceMs = settings.completion.debounceMs ?? 200;
+        await new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, debounceMs);
+          token.onCancellationRequested(() => {
+            clearTimeout(timer);
+            resolve();
+          });
+        });
+        if (token.isCancellationRequested) return { items: [] };
+
         try {
           const response = await window.forge.ai.complete({
             filePath: model.uri.path,
