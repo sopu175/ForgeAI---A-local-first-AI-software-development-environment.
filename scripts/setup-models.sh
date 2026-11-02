@@ -56,3 +56,4 @@ ollama list
 
 echo ""
 echo "🎉 Setup complete! All optimized models are ready for Sopu AI."
+

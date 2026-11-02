@@ -43,7 +43,8 @@ export const COMMANDS: CommandDefinition[] = [
   { id: 'view.agents', title: 'Show Agents', category: 'View', shortcut: '⌘⇧A' },
   { id: 'view.history', title: 'Show Checkpoints & History', category: 'View' },
   { id: 'view.models', title: 'Models & Providers', category: 'View' },
-  { id: 'view.settings', title: 'Open Settings', category: 'View', shortcut: '⌘,' },
+  { id: 'view.settings', title: 'Open Settings', category: 'Preferences', shortcut: '⌘,' },
+  { id: 'view.keybindings', title: 'Open Keyboard Shortcuts', category: 'Preferences', shortcut: '⌘K ⌘S', keywords: 'keyboard shortcuts keybindings hotkeys bindings' },
   { id: 'view.toggleSidebar', title: 'Toggle Side Bar', category: 'View', shortcut: '⌘B' },
   { id: 'view.toggleAIPanel', title: 'Toggle AI Panel', category: 'View', shortcut: '⌘⌥B' },
   { id: 'view.toggleBottomPanel', title: 'Toggle Panel', category: 'View', shortcut: '⌘J' },
@@ -52,6 +53,18 @@ export const COMMANDS: CommandDefinition[] = [
   { id: 'view.problems', title: 'Show Problems', category: 'View', shortcut: '⌘⇧M' },
   { id: 'view.debug', title: 'Show Run & Debug', category: 'View' },
   { id: 'view.git', title: 'Show Git Panel', category: 'View' },
+  { id: 'editor.commentLine', title: 'Toggle Line Comment', category: 'Edit', shortcut: '⌘/', keywords: 'comment uncomment' },
+  { id: 'editor.deleteLines', title: 'Delete Line', category: 'Edit', shortcut: '⌘⇧K', keywords: 'delete remove line' },
+  { id: 'editor.moveLinesUp', title: 'Move Line Up', category: 'Edit', shortcut: '⌥↑' },
+  { id: 'editor.moveLinesDown', title: 'Move Line Down', category: 'Edit', shortcut: '⌥↓' },
+  { id: 'editor.copyLinesUp', title: 'Copy Line Up', category: 'Edit', shortcut: '⇧⌥↑' },
+  { id: 'editor.copyLinesDown', title: 'Copy Line Down', category: 'Edit', shortcut: '⇧⌥↓' },
+  { id: 'editor.addSelectionToNextFindMatch', title: 'Add Selection to Next Find Match', category: 'Edit', shortcut: '⌘D', keywords: 'cursor multi-cursor match' },
+  { id: 'editor.expandLineSelection', title: 'Select Line', category: 'Edit', shortcut: '⌘L' },
+  { id: 'editor.insertLineAfter', title: 'Insert Line Below', category: 'Edit', shortcut: '⌘Enter' },
+  { id: 'editor.insertLineBefore', title: 'Insert Line Above', category: 'Edit', shortcut: '⌘⇧Enter' },
+  { id: 'editor.indent', title: 'Indent Line', category: 'Edit', shortcut: '⌘]' },
+  { id: 'editor.outdent', title: 'Outdent Line', category: 'Edit', shortcut: '⌘[' },
   { id: 'workspace.index', title: 'Index Project', category: 'Workspace' },
   { id: 'workspace.reindex', title: 'Rebuild Project Index', category: 'Workspace' },
   { id: 'specs.new', title: 'New Spec…', category: 'Specs' },
@@ -225,6 +238,45 @@ export async function runCommand(id: string): Promise<void> {
       return;
     case 'view.settings':
       store.setSettingsOpen(true);
+      return;
+    case 'view.keybindings':
+      store.setSettingsOpen(true, 'keybindings');
+      return;
+    case 'editor.commentLine':
+      void getActiveEditor()?.getAction('editor.action.commentLine')?.run();
+      return;
+    case 'editor.deleteLines':
+      void getActiveEditor()?.getAction('editor.action.deleteLines')?.run();
+      return;
+    case 'editor.moveLinesUp':
+      void getActiveEditor()?.getAction('editor.action.moveLinesUpAction')?.run();
+      return;
+    case 'editor.moveLinesDown':
+      void getActiveEditor()?.getAction('editor.action.moveLinesDownAction')?.run();
+      return;
+    case 'editor.copyLinesUp':
+      void getActiveEditor()?.getAction('editor.action.copyLinesUpAction')?.run();
+      return;
+    case 'editor.copyLinesDown':
+      void getActiveEditor()?.getAction('editor.action.copyLinesDownAction')?.run();
+      return;
+    case 'editor.addSelectionToNextFindMatch':
+      void getActiveEditor()?.getAction('editor.action.addSelectionToNextFindMatch')?.run();
+      return;
+    case 'editor.expandLineSelection':
+      void getActiveEditor()?.getAction('expandLineSelection')?.run();
+      return;
+    case 'editor.insertLineAfter':
+      void getActiveEditor()?.getAction('editor.action.insertLineAfter')?.run();
+      return;
+    case 'editor.insertLineBefore':
+      void getActiveEditor()?.getAction('editor.action.insertLineBefore')?.run();
+      return;
+    case 'editor.indent':
+      void getActiveEditor()?.getAction('editor.action.indentLines')?.run();
+      return;
+    case 'editor.outdent':
+      void getActiveEditor()?.getAction('editor.action.outdentLines')?.run();
       return;
     case 'view.toggleSidebar':
       store.toggleSidebar();

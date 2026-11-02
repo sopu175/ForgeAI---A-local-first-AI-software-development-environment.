@@ -479,10 +479,21 @@ export function ModelsModal() {
 
         {tab === 'providers' ? (
           <div className="space-y-3">
+            <div className="rounded-md border border-line-soft bg-panel-2 p-3 text-[11px] leading-relaxed text-muted">
+              <p className="font-medium text-fg flex items-center gap-1.5 mb-1">
+                <Sparkles size={13} className="text-accent" /> Free Cloud Models &amp; Claude Access
+              </p>
+              <ul className="list-disc pl-4 space-y-1 text-faint text-[10.5px]">
+                <li><strong className="text-fg">OpenRouter (Free tier &amp; Claude)</strong>: Connect to access Claude 3.5 Sonnet, Claude 3.5 Haiku, and free <code className="text-fg font-mono">:free</code> models (DeepSeek R1/V3, Llama 3.3 70B, Qwen 2.5 72B). Get an API key at <span className="text-accent underline">openrouter.ai</span>.</li>
+                <li><strong className="text-fg">Groq Cloud (100% Free)</strong>: Blazing fast (500+ tok/s) Llama 3.3 70B and Qwen 2.5 Coder. Free API key at <span className="text-accent underline">console.groq.com</span>.</li>
+                <li><strong className="text-fg">Google Gemini (Free 15 RPM)</strong>: Gemini 2.0 Flash with 1M context. Free API key at <span className="text-accent underline">aistudio.google.com</span>.</li>
+                <li><strong className="text-fg">Ollama Local</strong>: Completely free, offline, and private on your Mac.</li>
+              </ul>
+            </div>
+
             <div className="flex items-center justify-between">
               <p className="text-[11.5px] text-muted">
-                Ollama is managed automatically. API keys are stored in the OS keychain and never leave the main
-                process.
+                API keys are encrypted in your macOS Keychain and never leave your machine.
               </p>
               <button type="button" className="btn h-7" onClick={() => setAdding(true)} disabled={adding}>
                 <Plus size={12} /> Add endpoint
@@ -765,6 +776,51 @@ export function ModelsModal() {
   );
 }
 
+const PROVIDER_PRESETS = [
+  {
+    label: 'OpenRouter (Claude, DeepSeek, Free)',
+    name: 'OpenRouter',
+    kind: 'openrouter' as ProviderKind,
+    baseUrl: 'https://openrouter.ai/api/v1',
+    contextLength: 16384,
+  },
+  {
+    label: 'Groq (Free 500+ tok/s)',
+    name: 'Groq',
+    kind: 'openai' as ProviderKind,
+    baseUrl: 'https://api.groq.com/openai/v1',
+    contextLength: 8192,
+  },
+  {
+    label: 'Gemini (Free 15 RPM)',
+    name: 'Gemini',
+    kind: 'openai' as ProviderKind,
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+    contextLength: 32768,
+  },
+  {
+    label: 'DeepSeek Direct',
+    name: 'DeepSeek',
+    kind: 'openai' as ProviderKind,
+    baseUrl: 'https://api.deepseek.com/v1',
+    contextLength: 16384,
+  },
+  {
+    label: 'OpenAI (GPT-4o)',
+    name: 'OpenAI',
+    kind: 'openai' as ProviderKind,
+    baseUrl: 'https://api.openai.com/v1',
+    contextLength: 16384,
+  },
+  {
+    label: 'LM Studio (Local)',
+    name: 'LM Studio',
+    kind: 'lmstudio' as ProviderKind,
+    baseUrl: 'http://localhost:1234/v1',
+    contextLength: 8192,
+  },
+];
+
 function ProviderForm({
   draft,
   onChange,
@@ -784,6 +840,28 @@ function ProviderForm({
   };
   return (
     <div className="mt-3 space-y-2 rounded-md border border-line-soft bg-panel p-3">
+      <div>
+        <p className="text-[10px] font-medium text-faint uppercase tracking-wider mb-1">Quick Presets</p>
+        <div className="flex flex-wrap gap-1">
+          {PROVIDER_PRESETS.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => {
+                update({
+                  name: preset.name,
+                  kind: preset.kind,
+                  baseUrl: preset.baseUrl,
+                  config: { ...value.config, contextLength: preset.contextLength },
+                });
+              }}
+              className="btn !h-6 !px-2 !text-[9.5px] text-muted hover:text-fg hover:border-accent"
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <label className="space-y-1 text-[10.5px] text-muted">
           Name

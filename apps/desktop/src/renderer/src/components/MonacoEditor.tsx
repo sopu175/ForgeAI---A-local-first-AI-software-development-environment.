@@ -210,6 +210,42 @@ export function MonacoEditor({
       void editor.getAction('editor.action.formatDocument')?.run();
     });
 
+    // Workbench shortcuts pass-through when Monaco editor is focused
+    editor.addCommand(monacoApi.KeyMod.CtrlCmd | monacoApi.KeyCode.KeyP, () => {
+      useAppStore.getState().setQuickOpenOpen(true);
+    });
+    editor.addCommand(monacoApi.KeyMod.CtrlCmd | monacoApi.KeyMod.Shift | monacoApi.KeyCode.KeyP, () => {
+      useAppStore.getState().setPaletteOpen(true);
+    });
+    editor.addCommand(monacoApi.KeyMod.CtrlCmd | monacoApi.KeyCode.KeyB, () => {
+      useAppStore.getState().toggleSidebar();
+    });
+    editor.addCommand(monacoApi.KeyMod.CtrlCmd | monacoApi.KeyMod.Alt | monacoApi.KeyCode.KeyB, () => {
+      useAppStore.getState().toggleAI();
+    });
+    editor.addCommand(monacoApi.KeyMod.CtrlCmd | monacoApi.KeyCode.KeyJ, () => {
+      useAppStore.getState().toggleBottom();
+    });
+    editor.addCommand(monacoApi.KeyMod.CtrlCmd | monacoApi.KeyCode.Backslash, () => {
+      useAppStore.getState().toggleSplit();
+    });
+    editor.addCommand(monacoApi.KeyMod.CtrlCmd | monacoApi.KeyCode.Comma, () => {
+      useAppStore.getState().setSettingsOpen(true);
+    });
+    editor.addCommand(monacoApi.KeyMod.CtrlCmd | monacoApi.KeyCode.KeyW, () => {
+      const state = useAppStore.getState();
+      if (state.activeTabId) void state.closeTab(state.activeTabId);
+    });
+    editor.addCommand(monacoApi.KeyMod.CtrlCmd | monacoApi.KeyMod.Shift | monacoApi.KeyCode.Enter, () => {
+      const state = useAppStore.getState();
+      state.setAgentMode('coding');
+      state.openAI('agent');
+      state.setActivity('agents');
+    });
+    editor.addCommand(monacoApi.KeyMod.CtrlCmd | monacoApi.KeyMod.Alt | monacoApi.KeyCode.KeyN, () => {
+      useAppStore.getState().newChat();
+    });
+
     // Right-click menu: Monaco already contributes navigation, the clipboard
     // actions and a few edits, so only the gaps are filled here — anything that
     // would repeat a built-in entry (Format Document, Rename Symbol) is skipped.

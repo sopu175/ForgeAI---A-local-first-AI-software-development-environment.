@@ -1,12 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Bot,
+  Check,
   Code2,
+  Copy,
   Cpu,
   Globe,
   Info,
   KeyRound,
+  Keyboard,
   Palette,
+  Play,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -19,10 +23,12 @@ import { useAppStore } from '../state/app';
 import { Modal, ModalHeader, SectionLabel, Spinner, Toggle, cn } from './ui';
 import { shortModelName } from '../lib/format';
 import { forgetBrowserCache, installedBrowsers } from '../lib/workspaceActions';
+import { COMMANDS, runCommand, type CommandDefinition } from '../lib/commands';
 
 const SECTIONS = [
   { id: 'appearance', label: 'Appearance', icon: <Palette size={13} /> },
   { id: 'editor', label: 'Editor', icon: <Code2 size={13} /> },
+  { id: 'keybindings', label: 'Keyboard Shortcuts', icon: <Keyboard size={13} /> },
   { id: 'preview', label: 'Browser & Preview', icon: <Globe size={13} /> },
   { id: 'terminal', label: 'Terminal', icon: <Terminal size={13} /> },
   { id: 'agent', label: 'Agent', icon: <Bot size={13} /> },
@@ -64,12 +70,20 @@ export function SettingsModal() {
   const setModelsOpen = useAppStore((state) => state.setModelsOpen);
   const askConfirm = useAppStore((state) => state.askConfirm);
   const toast = useAppStore((state) => state.toast);
+  const settingsSection = useAppStore((state) => state.settingsSection);
 
   const [section, setSection] = useState<SectionId>('appearance');
   const [usage, setUsage] = useState<UsageStats | null>(null);
   const [ignoreDraft, setIgnoreDraft] = useState('');
   const [browsers, setBrowsers] = useState<BrowserOption[]>([]);
   const [browserScan, setBrowserScan] = useState(0);
+
+  useEffect(() => {
+    if (open && settingsSection) {
+      const match = SECTIONS.find((s) => s.id === settingsSection);
+      if (match) setSection(match.id);
+    }
+  }, [open, settingsSection]);
 
   useEffect(() => {
     if (open) setIgnoreDraft((settings?.indexing.ignoreGlobs ?? []).join('\n'));
@@ -314,6 +328,10 @@ export function SettingsModal() {
                 />
               </div>
             </div>
+          ) : null}
+
+          {section === 'keybindings' ? (
+            <KeybindingsSection onClose={() => setOpen(false)} />
           ) : null}
 
           {section === 'preview' ? (
@@ -920,6 +938,245 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div className="rounded-md border border-line-soft bg-panel-2 px-2.5 py-2">
       <p className="text-[9px] uppercase tracking-wide text-faint">{label}</p>
       <p className="mt-0.5 font-mono text-[13px] text-fg">{value}</p>
+    </div>
+  );
+}
+
+function parseShortcutKeys(shortcut: string): string[][] {
+  const chords = shortcut.trim().split(/\s+/);
+  return chords.map((chord) => {
+    const keys: string[] = [];
+    let remaining = chord;
+    while (remaining.length > 0) {
+      if (remaining.startsWith('⌘')) {
+        keys.push('⌘');
+        remaining = remaining.slice(1);
+      } else if (remaining.startsWith('⇧')) {
+        keys.push('⇧');
+        remaining = remaining.slice(1);
+      } else if (remaining.startsWith('⌥')) {
+        keys.push('⌥');
+        remaining = remaining.slice(1);
+      } else if (remaining.startsWith('⌃') || remaining.startsWith('^')) {
+        keys.push('⌃');
+        remaining = remaining.slice(1);
+      } else if (remaining.toLowerCase().startsWith('enter') || remaining.startsWith('↵')) {
+        keys.push('↵');
+        remaining = remaining.replace(/^(enter|↵)/i, '');
+      } else if (remaining.startsWith('\\')) {
+        keys.push('\\');
+        remaining = remaining.slice(1);
+      } else if (remaining.startsWith('`')) {
+        keys.push('`');
+        remaining = remaining.slice(1);
+      } else if (remaining.startsWith('/')) {
+        keys.push('/');
+        remaining = remaining.slice(1);
+      } else if (remaining.startsWith(',')) {
+        keys.push(',');
+        remaining = remaining.slice(1);
+      } else if (remaining.startsWith(']')) {
+        keys.push(']');
+        remaining = remaining.slice(1);
+      } else if (remaining.startsWith('[')) {
+        keys.push('[');
+        remaining = remaining.slice(1);
+      } else {
+        keys.push(remaining.slice(0, 1).toUpperCase());
+        remaining = remaining.slice(1);
+      }
+    }
+    return keys;
+  });
+}
+
+function ShortcutKbd({ shortcut }: { shortcut?: string }) {
+  if (!shortcut) return <span className="text-[10px] italic text-faint">Unassigned</span>;
+  const chords = parseShortcutKeys(shortcut);
+  return (
+    <div className="flex items-center gap-1.5 font-mono">
+      {chords.map((keys, chordIdx) => (
+        <span key={chordIdx} className="inline-flex items-center gap-0.5">
+          {keys.map((key, keyIdx) => (
+            <kbd
+              key={keyIdx}
+              className="inline-flex h-[20px] min-w-[20px] items-center justify-center rounded border border-line-soft bg-panel-3 px-1 text-[10px] font-semibold text-fg shadow-xs"
+            >
+              {key}
+            </kbd>
+          ))}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function KeybindingsSection({ onClose }: { onClose: () => void }) {
+  const [query, setQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const toast = useAppStore((state) => state.toast);
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    COMMANDS.forEach((c) => set.add(c.category));
+    return ['All', ...Array.from(set).sort()];
+  }, []);
+
+  const filteredCommands = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return COMMANDS.filter((cmd) => {
+      if (categoryFilter !== 'All' && cmd.category !== categoryFilter) return false;
+      if (!q) return true;
+      return (
+        cmd.title.toLowerCase().includes(q) ||
+        cmd.id.toLowerCase().includes(q) ||
+        cmd.category.toLowerCase().includes(q) ||
+        (cmd.shortcut && cmd.shortcut.toLowerCase().includes(q)) ||
+        (cmd.keywords && cmd.keywords.toLowerCase().includes(q))
+      );
+    });
+  }, [query, categoryFilter]);
+
+  const copyId = async (id: string) => {
+    try {
+      await navigator.clipboard.writeText(id);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1500);
+      toast('info', `Copied command ID: ${id}`);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleRun = (cmd: CommandDefinition) => {
+    onClose();
+    void runCommand(cmd.id);
+  };
+
+  return (
+    <div className="space-y-3.5">
+      <div className="flex items-center justify-between">
+        <div>
+          <SectionLabel>Keyboard Shortcuts</SectionLabel>
+          <p className="text-[10.5px] leading-relaxed text-faint">
+            Standard macOS and IDE keybindings. Press <kbd className="rounded border border-line bg-panel-2 px-1 text-[9.5px]">⌘K ⌘S</kbd> anywhere to open this screen.
+          </p>
+        </div>
+        <span className="chip !text-[9.5px]">
+          {filteredCommands.length} {filteredCommands.length === 1 ? 'shortcut' : 'shortcuts'}
+        </span>
+      </div>
+
+      {/* Filter and Category Row */}
+      <div className="flex flex-col gap-2">
+        <div className="relative">
+          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-faint" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search commands, keys (e.g. ⌘K or cmd+s) or categories…"
+            className="h-8 w-full rounded-md border border-line-soft bg-panel-2 pl-8 pr-3 text-[11.5px] text-fg focus:border-accent"
+          />
+          {query ? (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-faint hover:text-fg"
+            >
+              Clear
+            </button>
+          ) : null}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setCategoryFilter(cat)}
+              className={cn(
+                'btn !h-6 !px-2 !text-[10px]',
+                categoryFilter === cat ? 'border-accent bg-accent-soft font-medium text-accent' : 'text-faint hover:text-fg',
+              )}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Shortcuts Table */}
+      <div className="max-h-[380px] overflow-y-auto rounded-md border border-line-soft bg-panel-2">
+        <table className="w-full text-left text-[11px]">
+          <thead className="sticky top-0 border-b border-line-soft bg-panel text-[10px] uppercase tracking-wider text-faint">
+            <tr>
+              <th className="px-3 py-1.5 font-medium">Command</th>
+              <th className="px-3 py-1.5 font-medium">Keybinding</th>
+              <th className="px-3 py-1.5 font-medium">Category</th>
+              <th className="px-3 py-1.5 text-right font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line-soft font-normal">
+            {filteredCommands.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-3 py-6 text-center text-[11px] text-faint">
+                  No matching keyboard shortcuts found for &ldquo;{query}&rdquo;
+                </td>
+              </tr>
+            ) : (
+              filteredCommands.map((cmd) => (
+                <tr key={cmd.id} className="group transition-colors hover:bg-panel-3/50">
+                  <td className="px-3 py-2">
+                    <p className="font-medium text-fg">{cmd.title}</p>
+                    <p className="font-mono text-[9px] text-faint">{cmd.id}</p>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2">
+                    <ShortcutKbd shortcut={cmd.shortcut} />
+                  </td>
+                  <td className="px-3 py-2">
+                    <span className="chip !text-[9px]">{cmd.category}</span>
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <div className="flex items-center justify-end gap-1 opacity-80 group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => void copyId(cmd.id)}
+                        className="btn !h-6 !px-1.5 !text-[9.5px]"
+                        title="Copy Command ID"
+                      >
+                        {copiedId === cmd.id ? <Check size={11} className="text-success" /> : <Copy size={11} />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRun(cmd)}
+                        className="btn !h-6 !px-2 !text-[9.5px] text-accent hover:border-accent"
+                        title="Run this command now"
+                      >
+                        <Play size={10} /> Run
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Legend / Tip */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line-soft bg-panel-2 px-3 py-2 text-[10px] text-faint">
+        <div className="flex items-center gap-3">
+          <span className="font-medium text-muted">macOS Keys:</span>
+          <span><kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">⌘</kbd> Command</span>
+          <span><kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">⇧</kbd> Shift</span>
+          <span><kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">⌥</kbd> Option</span>
+          <span><kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">⌃</kbd> Control</span>
+          <span><kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">↵</kbd> Return</span>
+        </div>
+        <span>Chord shortcut: Press <kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">⌘K</kbd> then <kbd className="rounded border border-line bg-panel px-1 py-0.5 font-mono text-[9px]">⌘S</kbd></span>
+      </div>
     </div>
   );
 }

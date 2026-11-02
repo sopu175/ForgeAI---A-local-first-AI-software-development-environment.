@@ -277,14 +277,25 @@ export function AssistantPanel() {
         <button
           type="button"
           onClick={() => setModelsOpen(true)}
-          className="chip !h-[18px] !text-[9.5px] cursor-pointer transition-colors hover:border-accent hover:text-accent"
+          className={cn(
+            'flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors cursor-pointer',
+            selectedModel
+              ? 'border-accent/40 bg-accent/10 text-accent hover:border-accent hover:bg-accent/20'
+              : 'border-line text-muted hover:border-accent hover:text-accent',
+          )}
           title={
             selectedModel
               ? `${selectedModel.providerId}/${selectedModel.model} · Click to manage models & providers`
               : 'Click to select or install a model'
           }
         >
-          {selectedModel ? shortModelName(selectedModel.model) : 'select model'}
+          <Zap size={10} className="shrink-0" />
+          <span className="truncate max-w-[120px]">
+            {selectedModel ? shortModelName(selectedModel.model) : 'select model'}
+          </span>
+          <span className="text-[8.5px] opacity-75 uppercase tracking-wide">
+            {selectedModel?.providerId === 'ollama' ? 'Local' : 'Cloud'}
+          </span>
         </button>
       </div>
 
@@ -757,15 +768,46 @@ function WelcomeScreen({
         </div>
       </div>
 
+      {/* Free Models & Claude Guide */}
+      <div className="w-full max-w-[380px] rounded-lg border border-accent/30 bg-accent/5 p-3">
+        <div className="mb-1.5 flex items-center justify-between">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-accent">
+            <Sparkles size={13} /> Free Models &amp; Claude
+          </p>
+          <button
+            type="button"
+            onClick={onOpenModels}
+            className="btn !h-5 !px-2 !text-[9.5px] border-accent/40 bg-accent/10 text-accent hover:bg-accent/20"
+          >
+            Manage Models
+          </button>
+        </div>
+        <p className="mb-2 text-[10px] leading-relaxed text-muted">
+          Use high-performance local AI or free cloud models without paying for subscriptions:
+        </p>
+        <ul className="flex flex-col gap-1 text-[9.5px] text-faint">
+          <li>
+            <strong className="text-fg">sopu-coder (7B) &amp; fast (4B)</strong>: 100% free, private, offline Apple Silicon optimized inference.
+          </li>
+          <li>
+            <strong className="text-fg">Claude 3.5 Sonnet / Haiku</strong>: Connect via OpenRouter or Anthropic in Models → Providers.
+          </li>
+          <li>
+            <strong className="text-fg">Free Cloud Models</strong>: OpenRouter (<code className="font-mono text-fg">:free</code> endpoints for DeepSeek R1/V3, Llama 3.3 70B) &amp; Groq (500+ tok/s).
+          </li>
+        </ul>
+      </div>
+
       {/* Tips */}
       <div className="w-full max-w-[380px] rounded-md border border-line-soft bg-panel-2 px-3 py-2.5">
-        <p className="mb-1.5 text-[9.5px] font-semibold uppercase tracking-wider text-faint">Tips</p>
+        <p className="mb-1.5 text-[9.5px] font-semibold uppercase tracking-wider text-faint">Tips &amp; Shortcuts</p>
         <ul className="flex flex-col gap-1 text-[9.5px] leading-relaxed text-faint">
-          <li><span className="text-muted">⌘⌥N</span> — new conversation</li>
+          <li><span className="text-muted">⌘K ⌘S</span> — open Keyboard Shortcuts settings</li>
+          <li><span className="text-muted">⌘⌥N</span> — new AI conversation</li>
+          <li><span className="text-muted">⌘K</span> — inline AI code edit</li>
           <li><span className="text-muted">Shift+Enter</span> — multi-line input</li>
           <li><span className="text-muted">📎 Attach</span> — pin any file to the prompt</li>
-          <li><span className="text-muted">Agent mode</span> — edits files, runs tests, verifies output</li>
-          <li><span className="text-muted">Cloud models</span> — add OpenRouter / Groq / Gemini in Settings → Models</li>
+          <li><span className="text-muted">Agent mode</span> — autonomous edits, test execution and file verification</li>
         </ul>
       </div>
     </div>

@@ -100,10 +100,26 @@ export function App() {
   // Global keyboard shortcuts. Monaco owns editing shortcuts; these are the
   // workbench-level bindings.
   useEffect(() => {
+    let pendingChord: string | null = null;
+    let chordTimer: ReturnType<typeof setTimeout> | null = null;
+
     const onKeyDown = (event: KeyboardEvent) => {
       const store = useAppStore.getState();
       const mod = event.metaKey || event.ctrlKey;
       const key = event.key.toLowerCase();
+
+      if (pendingChord) {
+        const chord = pendingChord;
+        pendingChord = null;
+        if (chordTimer) clearTimeout(chordTimer);
+        chordTimer = null;
+
+        if (chord === 'k' && (key === 's' || (mod && key === 's'))) {
+          event.preventDefault();
+          void runCommand('view.keybindings');
+          return;
+        }
+      }
 
       if (event.key === 'Escape' && store.paletteOpen) {
         store.setPaletteOpen(false);
@@ -121,6 +137,15 @@ export function App() {
         event.preventDefault();
         void runCommand(id);
       };
+
+      if (key === 'k' && !event.shiftKey && !event.altKey) {
+        pendingChord = 'k';
+        chordTimer = setTimeout(() => {
+          pendingChord = null;
+          void runCommand('ai.inlineEdit');
+        }, 400);
+        return;
+      }
 
       if (key === 'p') {
         event.preventDefault();
@@ -145,13 +170,16 @@ export function App() {
       if (key === 'g' && event.shiftKey) return run('view.scm');
       if (key === 'e' && event.shiftKey) return run('view.explorer');
       if (key === 'a' && event.shiftKey) return run('view.agents');
-      if (key === 'k') return run('ai.inlineEdit');
+      if (key === '/') return run('editor.commentLine');
       if (key === 'enter' && event.shiftKey) return run('agent.run');
       if (key === 'c' && event.altKey) return run('ai.focusChat');
-      if (key === 'n' && event.altKey) return run('ai.newChat');
+      if (key === 'n') return run(event.altKey ? 'ai.newChat' : 'file.newFile');
     };
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      if (chordTimer) clearTimeout(chordTimer);
+    };
   }, []);
 
   if (!ready) return <LoadingScreen />;

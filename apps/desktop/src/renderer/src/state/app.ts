@@ -172,6 +172,7 @@ export interface AppState {
   paletteOpen: boolean;
   quickOpenOpen: boolean;
   settingsOpen: boolean;
+  settingsSection?: string;
   modelsOpen: boolean;
   quickEdit: QuickEditState | null;
   prompt: {
@@ -246,7 +247,7 @@ export interface AppState {
   setAgentMode(agent: AgentKind): void;
   setPaletteOpen(open: boolean): void;
   setQuickOpenOpen(open: boolean): void;
-  setSettingsOpen(open: boolean): void;
+  setSettingsOpen(open: boolean, section?: string): void;
   setModelsOpen(open: boolean): void;
   setReveal(path: string, line: number): void;
   setCursor(line: number, column: number): void;
@@ -789,8 +790,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
     set({ quickOpenOpen: open, paletteOpen: false });
   },
 
-  setSettingsOpen(open) {
-    set({ settingsOpen: open });
+  setSettingsOpen(open, section) {
+    set({ settingsOpen: open, ...(section ? { settingsSection: section } : {}) });
   },
 
   setModelsOpen(open) {
