@@ -758,7 +758,7 @@ export class OllamaRuntime {
   }
 
   private modelName(): string {
-    return process.env['FORGEAI_OLLAMA_MODEL']?.trim() || DEFAULT_OLLAMA_MODEL;
+    return process.env['FORGEAI_OLLAMA_MODEL']?.trim() || SOPU_CODER_RECIPE.model;
   }
 
   private async locateBinary(): Promise<string | null> {

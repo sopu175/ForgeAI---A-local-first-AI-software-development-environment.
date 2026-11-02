@@ -216,10 +216,15 @@ If automatic download is blocked by a proxy or firewall:
 # 2. Start the server.
 ollama serve
 
-# 3. Pull the default model once.
+# 3. Pull the base weights once (or let ForgeAI auto-pull and build on first launch):
+ollama pull qwen2.5-coder:7b
 ollama pull qwen3.5:4b
 
-# 4. Launch ForgeAI; it detects the running server and skips installation.
+# 4. Build the custom Sopu AI models (ForgeAI also auto-builds these on startup if missing):
+ollama create sopu-coder -f modelfiles/Modelfile.sopu-coder
+ollama create sopu-coder-fast -f modelfiles/Modelfile.sopu-coder-fast
+
+# 5. Launch ForgeAI; it detects the models and assigns roles automatically.
 yarn dev
 ```
 
@@ -328,6 +333,14 @@ ForgeAI adopts performance patterns directly from the **[Microsoft Monaco Editor
 - **Unified Action Cards:**
   - Instead of raw JSON dumps (`{"name": "read_file", ...}`), the agent renders clean, interactive **Action Cards**:
     - 📄 **Read File**: Shows path, size, and offers 1-click **Open in Editor**.
+    - ✏️ **Edit / Create File**: Displays affected files with live additions/deletions (`+N -M`) diff badges.
+    - 💻 **Terminal Command**: Renders styled bash command pills with exit status and a 1-click **Copy Output** button.
+    - 🧭 **Workspace Scan**: Compact hierarchical folder overview.
+
+### 3. Live Terminal & Workspace Code Panel Synchronization
+- **Instant Code & Tree Sync:** When you execute commands in the built-in terminal (`touch`, `mkdir`, `rm`, `npm run build`, `composer install`), changes are instantly detected and rendered in the left-side **File Explorer** and active **Monaco Editor** tabs without requiring manual refresh.
+- **Expanded Directory Memory:** Unlike basic file trees that collapse or freeze, ForgeAI automatically queries all currently expanded directories whenever the workspace changes, ensuring nested additions and modifications appear immediately.
+- **Terminal Git Operations:** Git commands executed in the terminal (`git checkout`, `git switch`, `git add`, `git commit`, `git pull`, `git reset`) update `.git/HEAD` and `.git/index`, which instantly broadcasts a `git:changed` event to refresh the **Source Control** sidebar and gutter indicators.
     - ✏️ **Edit File**: Shows exact file paths with live `+additions -deletions`.
     - 💻 **Terminal Command**: Shows commands with exit codes, execution output, and quick **Copy Output**.
     - 🧭 **Workspace Scan**: Shows indexed files and stack overview.

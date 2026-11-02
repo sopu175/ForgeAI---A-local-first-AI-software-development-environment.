@@ -125,6 +125,16 @@ export class WorkspaceService {
       ignored: (candidate: string) => {
         const relative = normalizeRelative(path.relative(root, candidate));
         if (!relative) return false;
+        // Allow watching git references and index so terminal git operations reflect live
+        if (
+          relative === '.git' ||
+          relative === '.git/HEAD' ||
+          relative === '.git/index' ||
+          relative === '.git/refs' ||
+          relative.startsWith('.git/refs/')
+        ) {
+          return false;
+        }
         const segments = relative.split('/');
         if (segments.some((segment) => IGNORED_DIRS.has(segment))) return true;
         if (relative.startsWith('.sopuforge/')) return true;
@@ -158,7 +168,16 @@ export class WorkspaceService {
       this.watcher.on(eventName, (absolute: string) => {
         if (!this.current) return;
         const relative = normalizeRelative(path.relative(root, absolute));
-        if (!relative || relative.startsWith('.git/')) return;
+        if (!relative) return;
+        if (
+          relative === '.git/HEAD' ||
+          relative === '.git/index' ||
+          relative.startsWith('.git/refs/')
+        ) {
+          this.broadcast('git:changed', { projectId: this.projectId });
+          return;
+        }
+        if (relative.startsWith('.git/')) return;
         pending.push({ type: eventName, path: relative });
         schedule();
       });

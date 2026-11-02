@@ -294,7 +294,7 @@ export interface AppState {
   appendOutput(level: OutputLine['level'], text: string, source?: string): void;
   clearOutput(): void;
   setProblems(path: string, problems: ProblemItem[]): void;
-  handleWorkspaceChange(path: string): void;
+  handleWorkspaceChange(path?: string): void;
   handleIndexProgress(status: IndexStatus): void;
   handleSpecChanged(): void;
 }
@@ -303,6 +303,7 @@ const REVEAL_NONCE = { value: 0 };
 const TOAST_SEQ = { value: 0 };
 const OUTPUT_SEQ = { value: 0 };
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+const changedWorkspacePaths = new Set<string>();
 
 export const useAppStore = create<AppState>()((set, get) => ({
   ready: false,
@@ -1312,28 +1313,36 @@ export const useAppStore = create<AppState>()((set, get) => ({
     }));
   },
 
-  handleWorkspaceChange(path) {
+  handleWorkspaceChange(path?: string) {
     if (!get().project) return;
+    if (path) changedWorkspacePaths.add(path);
     if (refreshTimer) return;
     refreshTimer = setTimeout(() => {
       refreshTimer = null;
+      const paths = new Set(changedWorkspacePaths);
+      changedWorkspacePaths.clear();
+
       void get().refreshTree();
       const state = get();
       for (const tab of state.tabs) {
-        if (tab.kind !== 'file' || !tab.path || tab.content !== tab.saved) continue;
-        if (path !== tab.path) continue;
-        void window.forge.workspace.readFile(tab.path).then((file) => {
-          set((current) => ({
-            tabs: current.tabs.map((entry) =>
-              entry.id === tab.id && entry.content === entry.saved
-                ? { ...entry, content: file.content, saved: file.content, mtime: file.mtime }
-                : entry,
-            ),
-          }));
-        });
+        if (tab.kind !== 'file' || !tab.path) continue;
+        // If paths is empty (general refresh, e.g. from terminal) or the open tab's file was modified
+        if (paths.size === 0 || paths.has(tab.path)) {
+          if (tab.content === tab.saved) {
+            void window.forge.workspace.readFile(tab.path).then((file) => {
+              set((current) => ({
+                tabs: current.tabs.map((entry) =>
+                  entry.id === tab.id && entry.content === entry.saved
+                    ? { ...entry, content: file.content, saved: file.content, mtime: file.mtime }
+                    : entry,
+                ),
+              }));
+            }).catch(() => undefined);
+          }
+        }
       }
       void state.refreshGit();
-    }, 220);
+    }, 150);
   },
 
   handleIndexProgress(status) {

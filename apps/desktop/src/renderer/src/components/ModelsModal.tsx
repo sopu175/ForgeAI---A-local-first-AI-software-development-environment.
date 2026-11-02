@@ -93,7 +93,7 @@ export function ModelsModal() {
   const [loading, setLoading] = useState(false);
   const [health, setHealth] = useState<Record<string, ProviderHealth | 'checking'>>({});
   const [running, setRunning] = useState<RunningModel[]>([]);
-  const [pullModel, setPullModel] = useState(DEFAULT_OLLAMA_MODEL);
+  const [pullModel, setPullModel] = useState('sopu-coder');
   const [pulling, setPulling] = useState<PullProgress | null>(null);
   const [recommended, setRecommended] = useState<Partial<Record<ModelRole, { providerId: string; model: string }>>>({});
   const [editing, setEditing] = useState<string | null>(null);
@@ -207,21 +207,22 @@ export function ModelsModal() {
 
   const keepOnlyDefault = () => {
     if (!ollama) return;
+    const keepList = ['sopu-coder', 'sopu-coder-fast', DEFAULT_OLLAMA_MODEL];
     const others = installed.filter(
       (model) =>
         model.providerId === ollama.id &&
-        model.id.replace(/:latest$/, '') !== DEFAULT_OLLAMA_MODEL.replace(/:latest$/, '') &&
+        !keepList.some((k) => model.id.replace(/:latest$/, '') === k.replace(/:latest$/, '')) &&
         !model.capabilities.embedding,
     );
     if (others.length === 0) return;
     askConfirm({
       title: `Clean up older Ollama models?`,
-      message: `This removes ${others.length} inactive chat model${others.length === 1 ? '' : 's'} to free disk space. Embedding models (vector search) and resident models are preserved.`,
+      message: `This removes ${others.length} inactive chat model${others.length === 1 ? '' : 's'} to free disk space. Sopu AI models (sopu-coder, sopu-coder-fast) and embeddings are preserved.`,
       confirmLabel: 'Clean up models',
       danger: true,
       action: async () => {
         try {
-          const removed = await window.forge.providers.keepOnly(ollama.id, [DEFAULT_OLLAMA_MODEL]);
+          const removed = await window.forge.providers.keepOnly(ollama.id, ['sopu-coder', 'sopu-coder-fast']);
           if (settings) {
             const recommended = await window.forge.settings.recommendRoles().catch(() => ({}));
             await updateSettings({ modelRoles: { ...settings.modelRoles, ...recommended } });
@@ -308,9 +309,9 @@ export function ModelsModal() {
                         type="button"
                         className="btn btn-ghost h-5 px-1.5 text-[10px]"
                         onClick={keepOnlyDefault}
-                        title={`Delete every Ollama model except ${DEFAULT_OLLAMA_MODEL}`}
+                        title="Delete inactive Ollama models except Sopu AI trained models"
                       >
-                        <Trash2 size={10} /> Keep only {shortModelName(DEFAULT_OLLAMA_MODEL)}
+                        <Trash2 size={10} /> Clean up inactive models
                       </button>
                     ) : null}
                     Installed
@@ -321,19 +322,23 @@ export function ModelsModal() {
               </SectionLabel>
               {installed.length === 0 ? (
                 <div className="card p-4 text-[12px] text-muted">
-                  No models installed yet. The first-launch setup downloads{' '}
-                  <span className="mono text-fg">{DEFAULT_OLLAMA_MODEL}</span>, or you can pull one below.
+                  No models installed yet. First-launch setup automatically compiles{' '}
+                  <span className="mono text-fg">sopu-coder</span>, or you can pull one below.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
                   {installed.map((model) => {
                     const key = bindingKey(model.providerId, model.id);
+                    const isSopu = model.id.includes('sopu-coder');
                     return (
                       <div key={key} className="card p-3">
                         <div className="flex items-start gap-2">
                           <div className="min-w-0 flex-1">
-                            <div className="truncate text-[12.5px] font-medium text-fg-strong">
-                              {shortModelName(model.id)}
+                            <div className="flex items-center gap-1.5 truncate text-[12.5px] font-medium text-fg-strong">
+                              <span>{shortModelName(model.id)}</span>
+                              {isSopu ? (
+                                <span className="chip chip-success text-[9.5px]">Sopu AI Custom</span>
+                              ) : null}
                             </div>
                             <div className="mt-0.5 text-[10.5px] text-faint">
                               {providers.find((provider) => provider.id === model.providerId)?.name ?? model.providerId}
@@ -424,27 +429,28 @@ export function ModelsModal() {
                 ) : null}
                 <div className="mt-3 rounded-md border border-line-soft bg-panel p-2.5">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[11.5px] font-medium text-fg">{RECOMMENDED_DOWNLOADS[0]?.label}</span>
-                    <span className="chip">{RECOMMENDED_DOWNLOADS[0]?.size}</span>
+                    <span className="text-[11.5px] font-medium text-fg">sopu-coder (Primary Trained Coder)</span>
+                    <span className="chip chip-success">Custom Recipe</span>
+                    <span className="chip">~4.7 GB</span>
                     {installed.some(
-                      (model) => model.id.replace(/:latest$/, '') === DEFAULT_OLLAMA_MODEL.replace(/:latest$/, ''),
+                      (model) => model.id.replace(/:latest$/, '') === 'sopu-coder',
                     ) ? (
-                      <span className="chip chip-success">installed</span>
+                      <span className="chip chip-success">installed & active</span>
                     ) : (
                       <button
                         type="button"
                         className="btn ml-auto h-6 px-2 text-[10.5px]"
                         disabled={Boolean(pulling) || !ollama}
-                        onClick={() => ollama && void startPull(ollama.id, DEFAULT_OLLAMA_MODEL)}
+                        onClick={() => ollama && void startPull(ollama.id, 'sopu-coder')}
                       >
-                        <Download size={10} /> Download
+                        <Download size={10} /> Install sopu-coder
                       </button>
                     )}
                   </div>
                   <p className="mt-1 text-[10.5px] leading-relaxed text-muted">
-                    ForgeAI is tuned around one resident model: chat, planning, coding, review, fast tasks and every
-                    agent share it, so the runtime never reloads weights. Pull a specialist manually only if you need it
-                    (for example an embedding model for vector search).
+                    Sopu Coder is customized specifically for this IDE from Qwen2.5-Coder 7B with an 8K context window,
+                    temperature 0.2, and multi-language system prompt (TypeScript, React, PHP, Python). Automatically
+                    compiled via Ollama.
                   </p>
                 </div>
               </div>
@@ -764,8 +770,7 @@ export function ModelsModal() {
             <div className="flex items-start gap-2 rounded-md border border-line-soft bg-panel p-3 text-[11px] text-muted">
               <Info size={13} className="mt-0.5 shrink-0 text-cyan" />
               <span>
-                Recommended: <span className="mono text-fg">{DEFAULT_OLLAMA_MODEL}</span> for chat, coding, planning,
-                review, fast tasks and the agent. Embeddings are optional — pull an embedding model only if you want
+                Recommended: <span className="mono text-fg">sopu-coder</span> for coding, chat, planning, and review, and <span className="mono text-fg">sopu-coder-fast</span> for completions. Embeddings are optional — pull an embedding model only if you want
                 vector search; otherwise retrieval uses fast keyword ranking. Role choices are saved locally.
               </span>
             </div>

@@ -227,8 +227,22 @@ export const RECOMMENDED_DOWNLOADS: RecommendedDownload[] = [
     note: 'Ultra-fast (18+ tok/s) lightweight resident model for quick edits and completions.',
   },
   {
+    model: 'sopu-coder',
+    label: 'Sopu Coder (Trained Primary Coding Model)',
+    size: '~4.7 GB',
+    roles: ['coding', 'chat', 'plan', 'review'],
+    note: 'Custom Sopu AI trained Modelfile model (qwen2.5-coder:7b + 8K ctx, 4096 predict, full-stack React/Next/PHP/Python system instruction).',
+  },
+  {
+    model: 'sopu-coder-fast',
+    label: 'Sopu Coder Fast (Trained Completion Model)',
+    size: '~3.3 GB',
+    roles: ['fast'],
+    note: 'Custom Sopu AI low-latency completion model (qwen3.5:4b + 4K ctx).',
+  },
+  {
     model: 'qwen2.5-coder:7b',
-    label: 'Qwen2.5 Coder 7B (Recommended Primary)',
+    label: 'Qwen2.5 Coder 7B (Base Weights)',
     size: '~4.7 GB',
     roles: ['coding', 'chat', 'plan', 'review'],
     note: 'Optimal balance of speed (13.4 tok/s), 8K context headroom, and low 4.8GB VRAM footprint.',

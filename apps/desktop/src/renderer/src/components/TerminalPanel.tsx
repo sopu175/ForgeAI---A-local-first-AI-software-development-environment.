@@ -106,19 +106,33 @@ export function TerminalPanel() {
       if (settle !== undefined) window.clearTimeout(settle);
       settle = window.setTimeout(makeReady, 300);
     });
+    let refreshDebounce: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefresh = () => {
+      if (refreshDebounce) clearTimeout(refreshDebounce);
+      refreshDebounce = setTimeout(() => {
+        useAppStore.getState().handleWorkspaceChange();
+        void useAppStore.getState().refreshGit();
+      }, 350);
+    };
+
     const offExit = window.forge.events.on('terminal:exit', (payload) => {
       if (payload.id !== idRef.current) return;
       setExited(true);
       term.writeln(`\r\n\x1b[38;5;244m[process exited with code ${payload.exitCode}]\x1b[0m`);
+      scheduleRefresh();
     });
     const offCommands = subscribeTerminalCommands((command) => {
       if (idRef.current && shellReady)
         void window.forge.terminal.write(idRef.current, `${command}\r`).catch(() => undefined);
       else pending.push(command);
+      scheduleRefresh();
     });
 
     const onData = term.onData((data) => {
       if (idRef.current) void window.forge.terminal.write(idRef.current, data).catch(() => undefined);
+      if (data.includes('\r') || data.includes('\n')) {
+        scheduleRefresh();
+      }
     });
 
     void window.forge.terminal

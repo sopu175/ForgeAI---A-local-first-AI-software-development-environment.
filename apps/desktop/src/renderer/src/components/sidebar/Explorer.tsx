@@ -125,6 +125,45 @@ export function Explorer() {
     setFilter('');
   }, [project?.id]);
 
+  // Whenever the workspace tree updates (from file events, terminal commands, or agent execution),
+  // re-fetch directory listings for all currently expanded folders so new files and subdirectories
+  // appear immediately in the explorer without collapsing folders.
+  useEffect(() => {
+    const expandedDirs = Object.keys(localChildren);
+    if (expandedDirs.length === 0) return;
+    let cancelled = false;
+    void Promise.all(
+      expandedDirs.map(async (dirPath) => {
+        try {
+          const entries = await window.forge.workspace.list(dirPath);
+          return {
+            dirPath,
+            nodes: entries.map((entry) => ({
+              name: entry.name,
+              path: entry.path,
+              type: entry.type,
+              children: entry.type === 'directory' ? [] : undefined,
+            })),
+          };
+        } catch {
+          return { dirPath, nodes: [] };
+        }
+      }),
+    ).then((results) => {
+      if (cancelled) return;
+      setLocalChildren((prev) => {
+        const next = { ...prev };
+        for (const res of results) {
+          next[res.dirPath] = res.nodes;
+        }
+        return next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [files]);
+
   useEffect(() => {
     if (showFilter) filterRef.current?.focus();
   }, [showFilter]);
