@@ -148,6 +148,8 @@ export function AssistantPanel() {
     textarea.style.height = `${Math.min(180, textarea.scrollHeight)}px`;
   }, [input]);
 
+  const [pendingTask, setPendingTask] = useState<string | null>(null);
+
   const submit = () => {
     const text = input.trim();
     if (!text || busy) return;
@@ -156,18 +158,25 @@ export function AssistantPanel() {
         toast('info', 'Open a project folder before starting an agent.');
         return;
       }
+      // Show a quick plan-or-execute confirmation before running — mirrors the
+      // behaviour the user asked for ("agent suggestion — ask in reply").
       setInput('');
-      void startAgent({
-        projectId: project.id,
-        task: text,
-        agent: agentMode,
-        maxSteps,
-        contextFiles: contextFiles.length > 0 ? contextFiles : undefined,
-      });
+      setPendingTask(text);
       return;
     }
     setInput('');
     void sendChat(text);
+  };
+
+  const launchAgent = (task: string, agent: AgentKind = agentMode, planFirst = false) => {
+    setPendingTask(null);
+    void startAgent({
+      projectId: project!.id,
+      task,
+      agent: planFirst ? 'planner' : agent,
+      maxSteps,
+      contextFiles: contextFiles.length > 0 ? contextFiles : undefined,
+    });
   };
 
   const attachFile = () => {
@@ -332,6 +341,18 @@ export function AssistantPanel() {
             {chatError}
           </div>
         ) : null}
+
+        {/* Agent task confirmation card — shown after the user submits in agent mode */}
+        {pendingTask ? (
+          <AgentConfirmCard
+            task={pendingTask}
+            agentMode={agentMode}
+            onPlanFirst={() => launchAgent(pendingTask, agentMode, true)}
+            onExecute={() => launchAgent(pendingTask, agentMode, false)}
+            onCancel={() => { setPendingTask(null); setInput(pendingTask); }}
+          />
+        ) : null}
+
         <div ref={bottomRef} className="h-1" />
       </div>
 
@@ -830,6 +851,42 @@ function WelcomeScreen({
         </ul>
       </div>
 
+      {/* Git onboarding + custom model training info */}
+      <div className="w-full max-w-[380px] rounded-lg border border-line-soft bg-panel-2 p-3">
+        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-fg">
+          <GitBranch size={13} className="text-accent" /> Git &amp; Custom Model Setup
+        </p>
+        <div className="flex flex-col gap-2 text-[9.5px] text-faint">
+          <div>
+            <p className="font-semibold text-muted">New to Git?</p>
+            <p className="leading-relaxed">
+              Run <code className="rounded bg-panel-3 px-1 font-mono text-fg">git init</code> in the terminal, then
+              open the Source Control panel (⌘⇧G). After your first commit the branch, staged changes and history
+              all update in real time.
+            </p>
+          </div>
+          <div>
+            <p className="font-semibold text-muted">First-time install (yarn/npm/pip)?</p>
+            <p className="leading-relaxed">
+              Run the install command in the terminal. The file tree and SCM panel refresh automatically once the
+              command completes — no manual refresh needed.
+            </p>
+          </div>
+          <div>
+            <p className="font-semibold text-muted">Train your own Sopu model</p>
+            <p className="leading-relaxed">
+              Run <code className="rounded bg-panel-3 px-1 font-mono text-fg">yarn export-data</code> to export
+              conversation training data, then{' '}
+              <code className="rounded bg-panel-3 px-1 font-mono text-fg">yarn train:lora</code> to fine-tune.
+              Publish with{' '}
+              <code className="rounded bg-panel-3 px-1 font-mono text-fg">ollama create my-model -f Modelfile</code>{' '}
+              and select it in the model picker. The model is saved alongside Git history and shared with your team
+              via <code className="rounded bg-panel-3 px-1 font-mono text-fg">git push</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Tips */}
       <div className="w-full max-w-[380px] rounded-md border border-line-soft bg-panel-2 px-3 py-2.5">
         <p className="mb-1.5 text-[9.5px] font-semibold uppercase tracking-wider text-faint">Tips &amp; Shortcuts</p>
@@ -841,6 +898,83 @@ function WelcomeScreen({
           <li><span className="text-muted">📎 Attach</span> — pin any file to the prompt</li>
           <li><span className="text-muted">Agent mode</span> — autonomous edits, test execution and file verification</li>
         </ul>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Agent task confirmation card — shown before the agent executes
+// ---------------------------------------------------------------------------
+
+const AGENT_LABEL: Record<AgentKind, string> = {
+  coding: 'Coding',
+  planner: 'Planner',
+  debugging: 'Debugging',
+  testing: 'Testing',
+  review: 'Review',
+  docs: 'Docs',
+  seo: 'SEO',
+};
+
+function AgentConfirmCard({
+  task,
+  agentMode,
+  onPlanFirst,
+  onExecute,
+  onCancel,
+}: {
+  task: string;
+  agentMode: AgentKind;
+  onPlanFirst: () => void;
+  onExecute: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="mt-2 overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--accent)_40%,transparent)] bg-accent/5 shadow-xs">
+      <div className="flex items-center gap-2 border-b border-accent/20 bg-accent/8 px-3 py-2">
+        <Bot size={13} className="shrink-0 text-accent" />
+        <span className="text-[11.5px] font-semibold text-accent">
+          Ready to run {AGENT_LABEL[agentMode]} Agent
+        </span>
+      </div>
+      <div className="px-3 py-2.5">
+        <p className="rounded-md bg-panel-2 px-2.5 py-2 text-[11.5px] leading-relaxed text-fg border border-line-soft">
+          {task}
+        </p>
+        <p className="mt-2 text-[10px] leading-relaxed text-faint">
+          The agent will read files, propose diffs and may run commands.{' '}
+          Every write and shell command requires your explicit approval.
+        </p>
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            type="button"
+            className="btn btn-primary flex-1 !text-[11px] cursor-pointer"
+            onClick={onExecute}
+            title="Start the agent immediately"
+          >
+            <Bot size={11} /> Execute now
+          </button>
+          <button
+            type="button"
+            className="btn flex-1 !text-[11px] cursor-pointer border-accent/40 text-accent hover:bg-accent/10"
+            onClick={onPlanFirst}
+            title="Run the Planner agent first to produce an implementation plan"
+          >
+            <Brain size={11} /> Plan first
+          </button>
+          <button
+            type="button"
+            className="btn !h-7 !px-2 !text-[10px] text-faint hover:text-fg cursor-pointer"
+            onClick={onCancel}
+            title="Edit the task"
+          >
+            Edit
+          </button>
+        </div>
+        <p className="mt-1.5 text-[9px] text-faint text-center">
+          <strong className="text-muted">Plan first</strong> runs a read-only Planner that maps out files and steps before any edits are made.
+        </p>
       </div>
     </div>
   );

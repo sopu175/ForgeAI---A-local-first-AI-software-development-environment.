@@ -1,5 +1,5 @@
 import type { RetrievalResult } from '@forgeai/shared';
-import { cosineSimilarity } from './vector';
+import { cosineSimilarity, dotSimilarity } from './vector';
 
 export interface VectorCandidate {
   chunkId: number;
@@ -27,7 +27,9 @@ export function rankByVector(
   const scored: RetrievalResult[] = [];
   for (const candidate of candidates) {
     if (candidate.vector.length !== query.length) continue;
-    const score = cosineSimilarity(query, candidate.vector);
+    // Both the query vector and stored vectors are L2-normalised, so dot product
+    // equals cosine similarity — no sqrt needed, ~2× faster.
+    const score = dotSimilarity(query, candidate.vector);
     if (score < minScore) continue;
     scored.push({
       path: candidate.path,

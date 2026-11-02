@@ -53,6 +53,13 @@ export function SourceControl() {
   const [branches, setBranches] = useState<{ current: string; all: string[] } | null>(null);
   const [showBranches, setShowBranches] = useState(false);
 
+  // Refresh git status every time the SCM panel becomes visible so it always
+  // reflects the latest state after a terminal command (e.g. yarn install).
+  useEffect(() => {
+    void refreshGit();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const staged = useMemo(() => git?.files.filter((file) => file.staged) ?? [], [git]);
   const unstaged = useMemo(() => git?.files.filter((file) => !file.staged) ?? [], [git]);
 
@@ -94,23 +101,50 @@ export function SourceControl() {
 
   if (!git) {
     return (
-      <EmptyState
-        icon={<GitBranch size={22} />}
-        title="Not a Git repository"
-        description="Initialize Git in this folder from the terminal, then refresh source control."
-        action={
-          <button
-            type="button"
-            className="btn"
-            onClick={() => {
-              useAppStore.getState().showBottom('terminal');
-              toast('info', 'Run: git init');
-            }}
-          >
-            Open terminal
-          </button>
-        }
-      />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="border-b border-line-soft p-2">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              className="focus-ring flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded border border-line bg-panel-2 px-2 text-[11.5px] text-muted"
+            >
+              <GitBranch size={12} className="shrink-0 text-faint" />
+              <span className="truncate">Not a git repository</span>
+            </button>
+            <IconButton label="Refresh" onClick={() => void refreshGit()} title="Refresh status">
+              <RefreshCw size={12} />
+            </IconButton>
+          </div>
+        </div>
+        <EmptyState
+          icon={<GitBranch size={22} />}
+          title="Not a Git repository"
+          description="Initialise Git to track changes, commit, and use the model-powered commit message drafting."
+          action={
+            <div className="flex flex-col gap-2 w-full max-w-[220px]">
+              <button
+                type="button"
+                className="btn btn-primary w-full text-[11px]"
+                onClick={async () => {
+                  useAppStore.getState().showBottom('terminal');
+                  // Send git init command to the active terminal
+                  await new Promise((r) => setTimeout(r, 400));
+                  toast('info', 'Type: git init  then press Enter');
+                }}
+              >
+                <GitBranch size={12} /> Open terminal to run git init
+              </button>
+              <p className="text-center text-[9.5px] text-faint">
+                After initialising, click the{' '}
+                <span className="inline-flex items-center gap-0.5 font-medium text-muted">
+                  <RefreshCw size={9} /> refresh
+                </span>{' '}
+                button above.
+              </p>
+            </div>
+          }
+        />
+      </div>
     );
   }
 

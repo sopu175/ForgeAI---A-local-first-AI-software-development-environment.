@@ -36,6 +36,18 @@ export function cosineSimilarity(a: Float32Array, b: Float32Array): number {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
+/**
+ * Dot-product similarity for vectors that are already L2-normalized to unit length.
+ * Equivalent to cosine similarity but ~2× faster because no norm computation is needed.
+ * Use this when both vectors were produced by `normalizeVector`.
+ */
+export function dotSimilarity(a: Float32Array, b: Float32Array): number {
+  const length = Math.min(a.length, b.length);
+  let dot = 0;
+  for (let i = 0; i < length; i += 1) dot += (a[i] ?? 0) * (b[i] ?? 0);
+  return dot;
+}
+
 export function topK<T>(items: T[], k: number, score: (item: T) => number): Array<T & { score: number }> {
   const scored = items.map((item) => ({ ...item, score: score(item) }));
   scored.sort((a, b) => b.score - a.score);

@@ -166,7 +166,7 @@ export class AgentRuntimeService {
         this.search.files('', 300).catch(() => []),
       ]);
 
-      const retrievalResults = await this.indexer.search(request.projectId, request.task, 6).catch(() => []);
+      const retrievalResults = await this.indexer.search(request.projectId, request.task, 6, request.contextFiles ?? []).catch(() => []);
       const retrieval = packRetrievalResults(retrievalResults, 3000, 6);
       const activeFiles: Array<{ path: string; content: string }> = [];
       for (const relative of (request.contextFiles ?? []).slice(0, 4)) {

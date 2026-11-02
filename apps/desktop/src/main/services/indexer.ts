@@ -9,6 +9,7 @@ import {
   normalizeVector,
   rankByKeywords,
   rankByVector,
+  fileOverlapBoost,
   scanProject,
   vectorToBlob,
   type VectorCandidate,
@@ -44,10 +45,27 @@ const ZERO_STATUS = (projectId: string): IndexStatus => ({
   symbols: 0,
 });
 
+interface VectorCacheEntry {
+  chunkId: number;
+  path: string;
+  startLine: number;
+  endLine: number;
+  content: string;
+  vector: Float32Array;
+}
+
+interface VectorCache {
+  model: string;
+  entries: VectorCacheEntry[];
+  builtAt: number;
+}
+
 export class IndexerService {
   private runs = new Map<string, RunState>();
   private incrementalTimers = new Map<string, NodeJS.Timeout>();
   private pendingPaths = new Map<string, Set<string>>();
+  /** Per-project in-memory vector cache. Rebuilt once after indexing finishes; invalidated on incremental updates. */
+  private vectorCaches = new Map<string, VectorCache>();
 
   constructor(
     private readonly db: Database,
@@ -204,6 +222,8 @@ export class IndexerService {
       status.filesIndexed = counts.files;
       status.finishedAt = Date.now();
       this.db.updateIndexStatus(projectId, 'ready');
+      // Rebuild the in-memory vector cache now that all embeddings are settled.
+      await this.buildVectorCache(projectId);
       this.emit(status);
     } catch (error) {
       if (signal.aborted) {
@@ -312,7 +332,7 @@ export class IndexerService {
     if (failures > 0) status.message = `${failures} embedding batches failed; keyword retrieval remains available`;
   }
 
-  async search(projectId: string, query: string, limit = 12): Promise<RetrievalResult[]> {
+  async search(projectId: string, query: string, limit = 12, activeFiles?: string[]): Promise<RetrievalResult[]> {
     const chunks = this.db.listChunks(projectId);
     if (chunks.length === 0) return [];
     const textCandidates = chunks.map((chunk) => ({
@@ -327,17 +347,61 @@ export class IndexerService {
       const binding = await this.providers.resolveRole('embedding');
       const response = await this.providers.embed([query], new AbortController().signal);
       const queryVector = normalizeVector(response.vectors[0] ?? []);
-      const embeddings = this.db.listEmbeddings(projectId).filter((row) => row.model === binding.model);
-      const vectors = new Map<number, Float32Array>();
-      for (const row of embeddings) {
-        const vector = blobToVector(row.vector);
-        if (vector.length === queryVector.length) vectors.set(row.chunk_id, vector);
+
+      // Use the in-memory cache when available; fall back to DB otherwise.
+      let vectorCandidates: VectorCandidate[] = [];
+      const cache = this.vectorCaches.get(projectId);
+      if (cache && cache.model === binding.model) {
+        vectorCandidates = cache.entries.filter((entry) => entry.vector.length === queryVector.length);
+      } else {
+        const embeddings = this.db.listEmbeddings(projectId).filter((row) => row.model === binding.model);
+        const chunkMap = new Map(chunks.map((chunk) => [chunk.id, chunk]));
+        for (const row of embeddings) {
+          const chunk = chunkMap.get(row.chunk_id);
+          if (!chunk) continue;
+          const vector = blobToVector(row.vector);
+          if (vector.length !== queryVector.length) continue;
+          vectorCandidates.push({
+            chunkId: chunk.id,
+            path: chunk.path,
+            startLine: chunk.start_line,
+            endLine: chunk.end_line,
+            content: chunk.content,
+            vector,
+          });
+        }
       }
-      const vectorCandidates: VectorCandidate[] = [];
-      for (const chunk of chunks) {
-        const vector = vectors.get(chunk.id);
-        if (!vector) continue;
-        vectorCandidates.push({
+
+      const vectorResults = rankByVector(queryVector, vectorCandidates, limit);
+      const merged = new Map<string, RetrievalResult>();
+      for (const result of [...vectorResults, ...keywordResults]) {
+        const key = `${result.path}:${result.startLine}:${result.endLine}`;
+        const existing = merged.get(key);
+        if (!existing || existing.score < result.score) merged.set(key, result);
+      }
+      let mergedResults = [...merged.values()].sort((a, b) => b.score - a.score).slice(0, limit);
+      // Boost results from files the user currently has open — they're most likely relevant.
+      if (activeFiles && activeFiles.length > 0) {
+        mergedResults = fileOverlapBoost(mergedResults, activeFiles);
+      }
+      return mergedResults;
+    } catch {
+      return keywordResults;
+    }
+  }
+  /** Build (or rebuild) the in-memory vector cache for a project from the DB. */
+  private async buildVectorCache(projectId: string): Promise<void> {
+    try {
+      const binding = await this.providers.resolveRole('embedding');
+      const chunks = this.db.listChunks(projectId);
+      const chunkMap = new Map(chunks.map((chunk) => [chunk.id, chunk]));
+      const embeddings = this.db.listEmbeddings(projectId).filter((row) => row.model === binding.model);
+      const entries: VectorCacheEntry[] = [];
+      for (const row of embeddings) {
+        const chunk = chunkMap.get(row.chunk_id);
+        if (!chunk) continue;
+        const vector = blobToVector(row.vector);
+        entries.push({
           chunkId: chunk.id,
           path: chunk.path,
           startLine: chunk.start_line,
@@ -346,16 +410,9 @@ export class IndexerService {
           vector,
         });
       }
-      const vectorResults = rankByVector(queryVector, vectorCandidates, limit);
-      const merged = new Map<string, RetrievalResult>();
-      for (const result of [...vectorResults, ...keywordResults]) {
-        const key = `${result.path}:${result.startLine}:${result.endLine}`;
-        const existing = merged.get(key);
-        if (!existing || existing.score < result.score) merged.set(key, result);
-      }
-      return [...merged.values()].sort((a, b) => b.score - a.score).slice(0, limit);
+      this.vectorCaches.set(projectId, { model: binding.model, entries, builtAt: Date.now() });
     } catch {
-      return keywordResults;
+      // No embedding model configured — cache stays empty; keyword search still works.
     }
   }
 
@@ -375,6 +432,9 @@ export class IndexerService {
     const config = this.settings.get().indexing;
     if (!config.enabled) return;
     const projectId = this.workspace.projectId;
+    // If a full index run is already active, it will pick up these changes itself.
+    const activeRun = this.runs.get(projectId);
+    if (activeRun && (activeRun.status.state === 'scanning' || activeRun.status.state === 'embedding')) return;
     const pending = this.pendingPaths.get(projectId) ?? new Set<string>();
     for (const event of events) {
       if (event.type === 'addDir' || event.type === 'unlinkDir') continue;
@@ -423,6 +483,8 @@ export class IndexerService {
       } catch {
         // incremental embedding failures must not break editing
       }
+      // Rebuild the vector cache so the next search picks up the new embeddings.
+      await this.buildVectorCache(projectId);
       const counts = this.db.countIndex(projectId);
       const ready: IndexStatus = {
         ...status,

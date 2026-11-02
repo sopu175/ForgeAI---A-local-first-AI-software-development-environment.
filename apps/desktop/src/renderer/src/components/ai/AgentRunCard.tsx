@@ -119,16 +119,7 @@ export function AgentRunCard({
             {formatDuration(Math.max(0, elapsed))}
           </p>
         </div>
-        {running ? (
-          <button
-            type="button"
-            className="btn btn-danger !h-6 !px-2 !text-[10px] cursor-pointer"
-            onClick={onStop}
-            title="Stop the agent"
-          >
-            <Square size={9} fill="currentColor" /> Stop
-          </button>
-        ) : (
+        {running ? null : (
           <button
             type="button"
             className="focus-ring rounded p-1 text-faint hover:bg-panel-3 hover:text-fg cursor-pointer"
@@ -140,6 +131,28 @@ export function AgentRunCard({
           </button>
         )}
       </div>
+
+      {/* Prominent live-running banner */}
+      {running ? (
+        <div className="flex items-center gap-2 border-b border-accent/25 bg-accent/8 px-2.5 py-2">
+          <Spinner className="!h-3.5 !w-3.5 text-accent shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold text-accent">Agent is working…</p>
+            <p className="text-[9.5px] text-accent/70">
+              Step {run.steps.step} of {run.steps.maxSteps} · {formatDuration(Math.max(0, elapsed))}
+              {run.model ? ` · ${run.model.split(':')[0]?.split('/')?.pop() ?? run.model}` : ''}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-danger !h-6 !px-2.5 !text-[10px] cursor-pointer shrink-0"
+            onClick={onStop}
+            title="Stop the agent"
+          >
+            <Square size={9} fill="currentColor" /> Stop
+          </button>
+        </div>
+      ) : null}
 
       <div className="px-2.5 py-2">
         <p className="text-[11px] leading-relaxed font-medium text-fg">{run.task}</p>

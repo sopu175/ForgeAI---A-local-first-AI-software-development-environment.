@@ -26,6 +26,7 @@ export function AIPanel() {
   // Chat and agent runs share the Assistant panel; "agent" stays a valid tab id
   // so existing menu commands and shortcuts keep working.
   const assistantActive = aiTab === 'chat' || aiTab === 'agent';
+  const agentRunning = agentRun?.status === 'running';
 
   return (
     <aside className="ai-panel app-no-drag" aria-label="AI assistant">
@@ -55,7 +56,13 @@ export function AIPanel() {
                   {count}
                 </span>
               ) : null}
-              {tab.id === 'chat' && (streaming || agentRun?.status === 'running') ? (
+              {/* Live agent running pulse on the Assistant tab */}
+              {tab.id === 'chat' && agentRunning ? (
+                <span className="flex items-center gap-1 rounded-full bg-accent/15 border border-accent/40 px-1.5 py-0.5 text-[8.5px] font-semibold text-accent ml-0.5">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
+                  Running
+                </span>
+              ) : tab.id === 'chat' && streaming ? (
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
               ) : null}
             </button>

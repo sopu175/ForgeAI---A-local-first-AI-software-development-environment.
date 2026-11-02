@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useAppStore } from './state/app';
 import { runCommand } from './lib/commands';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { TopBar } from './components/TopBar';
 import { ActivityBar } from './components/ActivityBar';
 import { Sidebar } from './components/Sidebar';
@@ -185,31 +186,33 @@ export function App() {
   if (!ready) return <LoadingScreen />;
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-bg text-fg" data-app-ready="true">
-      <TopBar />
-      <div className="flex min-h-0 flex-1">
-        <ActivityBar />
-        <Sidebar />
-        <main className="flex min-w-0 flex-1 flex-col">
-          <RuntimeBanner />
-          <div className="flex min-h-0 flex-1 flex-col">
-            <EditorArea />
-          </div>
-          <BottomPanel />
-        </main>
-        <AIPanel />
-      </div>
-      <StatusBar />
+    <ErrorBoundary>
+      <div className="flex h-full min-h-0 flex-col bg-bg text-fg" data-app-ready="true">
+        <TopBar />
+        <div className="flex min-h-0 flex-1">
+          <ActivityBar />
+          <Sidebar />
+          <main className="flex min-w-0 flex-1 flex-col">
+            <RuntimeBanner />
+            <div className="flex min-h-0 flex-1 flex-col">
+              <EditorArea />
+            </div>
+            <BottomPanel />
+          </main>
+          <AIPanel />
+        </div>
+        <StatusBar />
 
-      <Toasts />
-      <PromptDialog />
-      <ConfirmDialog />
-      <PermissionModal />
-      <SettingsModal />
-      <ModelsModal />
-      <CommandPalette />
-      <QuickOpen />
-      <QuickEditDialog />
-    </div>
+        <Toasts />
+        <PromptDialog />
+        <ConfirmDialog />
+        <PermissionModal />
+        <SettingsModal />
+        <ModelsModal />
+        <CommandPalette />
+        <QuickOpen />
+        <QuickEditDialog />
+      </div>
+    </ErrorBoundary>
   );
 }

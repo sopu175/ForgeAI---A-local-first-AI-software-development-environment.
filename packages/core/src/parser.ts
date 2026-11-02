@@ -119,24 +119,70 @@ export class HeuristicParser implements CodeParser {
     const lines = content.split(/\r?\n/);
     let currentClass: string | undefined;
     let classIndent = -1;
+    // For brace-counted languages (Go, Rust, Java, C#, etc.) track nesting depth
+    // so we can tell when we leave a class/struct scope.
+    const isIndentLanguage = language === 'python' || language === 'ruby';
+    const isBraceLanguage = !isIndentLanguage && language !== 'typescript' && language !== 'javascript';
+    let braceDepth = 0;
+    let classStartDepth = -1;
 
     for (let index = 0; index < lines.length; index += 1) {
       const line = lines[index] ?? '';
       if (line.length > 400) continue;
-      const indent = line.length - line.trimStart().length;
-      if (currentClass && indent <= classIndent && line.trim().length > 0) {
-        currentClass = undefined;
-        classIndent = -1;
+
+      // --- Container scope tracking ---
+      if (isIndentLanguage) {
+        // Python/Ruby: use indentation to detect when we leave the class body.
+        const indent = line.length - line.trimStart().length;
+        if (currentClass && indent <= classIndent && line.trim().length > 0) {
+          currentClass = undefined;
+          classIndent = -1;
+        }
+      } else if (isBraceLanguage) {
+        // Go, Rust, Java, C#, C, C++: count braces to track scope exit.
+        for (const char of line) {
+          if (char === '{') braceDepth += 1;
+          else if (char === '}') {
+            braceDepth -= 1;
+            if (currentClass && braceDepth <= classStartDepth) {
+              currentClass = undefined;
+              classStartDepth = -1;
+            }
+          }
+        }
+      } else {
+        // JS/TS: original indent-based heuristic.
+        const indent = line.length - line.trimStart().length;
+        if (currentClass && indent <= classIndent && line.trim().length > 0) {
+          currentClass = undefined;
+          classIndent = -1;
+        }
       }
+
       for (const pattern of patterns) {
         const match = pattern.regex.exec(line);
         if (!match?.[1]) continue;
         const name = match[1];
         if (['if', 'for', 'while', 'switch', 'catch', 'return', 'constructor'].includes(name)) continue;
+        const isClassLike =
+          pattern.kind === 'class' ||
+          pattern.kind === 'interface' ||
+          pattern.kind === 'struct' ||
+          pattern.kind === 'trait' ||
+          pattern.kind === 'impl';
         const isMethod = pattern.kind === 'method' || pattern.kind === 'function';
-        if (pattern.kind === 'class' || pattern.kind === 'interface' || pattern.kind === 'struct') {
+        if (isClassLike) {
           currentClass = name;
-          classIndent = indent;
+          if (isIndentLanguage) {
+            classIndent = line.length - line.trimStart().length;
+          } else if (isBraceLanguage) {
+            // The opening brace may be on this line or the next; record current depth
+            // before this line's braces were counted so exit detection is correct.
+            classStartDepth = braceDepth - (line.split('{').length - 1) + (line.split('}').length - 1);
+            if (classStartDepth < 0) classStartDepth = 0;
+          } else {
+            classIndent = line.length - line.trimStart().length;
+          }
         }
         symbols.push({
           name,

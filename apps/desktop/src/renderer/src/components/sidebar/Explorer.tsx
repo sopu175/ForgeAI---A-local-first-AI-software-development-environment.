@@ -123,6 +123,7 @@ export function Explorer() {
   useEffect(() => {
     setLocalChildren({});
     setFilter('');
+    setCollapsed(false);
   }, [project?.id]);
 
   // Whenever the workspace tree updates (from file events, terminal commands, or agent execution),

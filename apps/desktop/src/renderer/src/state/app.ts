@@ -1322,7 +1322,12 @@ export const useAppStore = create<AppState>()((set, get) => ({
       const paths = new Set(changedWorkspacePaths);
       changedWorkspacePaths.clear();
 
+      // Always refresh the file tree so installs (yarn, npm, pip) and external
+      // editor changes appear immediately — mirroring VS Code behaviour.
       void get().refreshTree();
+      // Always refresh Git status so the SCM badge updates in real time.
+      void get().refreshGit();
+
       const state = get();
       for (const tab of state.tabs) {
         if (tab.kind !== 'file' || !tab.path) continue;
@@ -1341,8 +1346,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
           }
         }
       }
-      void state.refreshGit();
-    }, 150);
+    }, 120);  // 120ms — responsive without flooding on large installs
   },
 
   handleIndexProgress(status) {

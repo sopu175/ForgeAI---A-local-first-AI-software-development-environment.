@@ -146,31 +146,39 @@ export class SearchService {
     }
     const files = await scanProject(this.workspace.root, { maxFileSizeKb: 1024 });
     const results: TextSearchResult[] = [];
-    for (const file of files) {
-      if (results.length >= maxResults) break;
-      if (options.include) {
-        const include = options.include.split(',').map((value) => value.trim());
-        if (!include.some((pattern) => file.path.includes(pattern.replace(/\*/g, '')))) continue;
-      }
-      let content: string;
-      try {
-        content = await fs.readFile(path.join(this.workspace.root, file.path), 'utf8');
-      } catch {
-        continue;
-      }
-      const lines = content.split(/\r?\n/);
-      for (let index = 0; index < lines.length && results.length < maxResults; index += 1) {
-        const text = lines[index] ?? '';
-        matcher.lastIndex = 0;
-        const match = matcher.exec(text);
-        if (!match) continue;
-        results.push({
-          path: file.path,
-          line: index + 1,
-          column: match.index + 1,
-          preview: text.length > 400 ? `${text.slice(0, 400)}…` : text,
-          matchLength: Math.max(1, match[0].length),
-        });
+
+    const BATCH = 12;
+    for (let base = 0; base < files.length && results.length < maxResults; base += BATCH) {
+      const batch = files.slice(base, base + BATCH);
+      const reads = await Promise.all(
+        batch.map(async (file) => {
+          if (options.include) {
+            const include = options.include.split(',').map((value) => value.trim());
+            if (!include.some((pattern) => file.path.includes(pattern.replace(/\*/g, '')))) return null;
+          }
+          try {
+            return { path: file.path, content: await fs.readFile(path.join(this.workspace.root, file.path), 'utf8') };
+          } catch {
+            return null;
+          }
+        }),
+      );
+      for (const read of reads) {
+        if (!read || results.length >= maxResults) break;
+        const lines = read.content.split(/\r?\n/);
+        for (let index = 0; index < lines.length && results.length < maxResults; index += 1) {
+          const text = lines[index] ?? '';
+          matcher.lastIndex = 0;
+          const match = matcher.exec(text);
+          if (!match) continue;
+          results.push({
+            path: read.path,
+            line: index + 1,
+            column: match.index + 1,
+            preview: text.length > 400 ? `${text.slice(0, 400)}…` : text,
+            matchLength: Math.max(1, match[0].length),
+          });
+        }
       }
     }
     return results;
@@ -187,7 +195,16 @@ export class SearchService {
     }
     const normalizedQuery = query.toLowerCase().trim();
     if (!normalizedQuery) {
-      return files.sort((a, b) => a.localeCompare(b)).slice(0, limit);
+      // When building the tree summary, sort test/spec files after source files so
+      // the agent sees the most signal-dense entries within the display budget.
+      return files
+        .sort((a, b) => {
+          const aIsTest = /\.(test|spec)\.[a-z]+$|[\\/](tests?|__tests__|spec)[\\/]/i.test(a);
+          const bIsTest = /\.(test|spec)\.[a-z]+$|[\\/](tests?|__tests__|spec)[\\/]/i.test(b);
+          if (aIsTest !== bIsTest) return aIsTest ? 1 : -1;
+          return a.localeCompare(b);
+        })
+        .slice(0, limit);
     }
     const scored: FileSearchResult[] = files
       .map((file) => ({ path: file, score: fuzzyScore(normalizedQuery, file.toLowerCase()) }))
